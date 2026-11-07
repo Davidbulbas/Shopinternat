@@ -196,6 +196,15 @@ document.getElementById("search").addEventListener("input",renderProducts);
 renderProducts();
 renderCart();
 </script> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="./supabase-config.js"></script>
+<script src="./supabase-config.js"></script> 
+<script>
+supabaseClient.from("products").select("id").limit(1)
+  .then(({ error }) => {
+    alert(error
+      ? "Eroare Supabase: " + error.message
+      : "Conexiune Supabase reușită!");
+  });
+</script>
+
 </body>
 </html>
