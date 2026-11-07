@@ -1,0 +1,200 @@
+
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShopInternat</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#17212b}
+header{background:#176b49;color:white;padding:22px 16px}
+header h1{margin:0;font-size:28px}
+header p{margin:8px 0 0}
+main{max-width:1050px;margin:auto;padding:18px}
+.notice{background:#e4f3e9;padding:14px;border-radius:12px;margin-bottom:16px}
+input,button{font:inherit}
+#search{width:100%;padding:14px;border:1px solid #ddd;border-radius:12px;margin-bottom:18px}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
+.product{background:white;border-radius:14px;padding:15px;box-shadow:0 2px 8px #0000000b}
+.product h3{font-size:15px;min-height:55px}
+.price{font-size:19px;font-weight:bold;color:#176b49}
+button{background:#176b49;color:white;border:0;border-radius:9px;padding:10px;cursor:pointer}
+.product button{width:100%}
+.cart{background:white;border-radius:14px;padding:18px;margin-top:25px}
+.cart-row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #eee}
+.cart-row button{padding:5px 9px}
+small{color:#666}
+</style>
+</head>
+<body>
+<header>
+<h1>🛒 ShopInternat</h1>
+<p>Magazinul colegilor din internat</p>
+</header>
+<main>
+<div class="notice">
+<b>Program:</b> Luni, Marți, Joi și Vineri.<br>
+Comenzi până la 20:00. Livrare aproximativ 21:00–21:30.<br>
+Abonament săptămânal: 100 MDL.
+</div>
+
+<h2>Produse</h2>
+<input id="search" placeholder="🔎 Caută un produs...">
+<div class="products" id="products"></div>
+
+<section class="cart">
+<h2>🛍️ Coșul meu</h2>
+<div id="cartItems">Coșul este gol.</div>
+<h2 id="total">Total: 0 MDL</h2>
+<small>Versiune de test. Trimiterea comenzilor și plățile nu sunt încă activate.</small>
+</section>
+</main>
+
+<script>
+const products=[
+["Brânzică INCOMLAC vanilie/lapte condensat 50g",9],
+["Brânzică INCOMLAC vanilie/cafea 50g",9],
+["Pelmeni porc/vită 1kg",48],
+["Foitaj cașcaval 7 SPICE 75g",8],
+["Foitaj brânză 7 SPICE 70g",9],
+["Croissant 7DAYS cacao-vanilie 80g",14],
+["Croissant BOOM Double 50g",11],
+["Foitaj FRANZELUȚA cașcaval 80g",7],
+["Covrigei GALFIM 200g",18],
+["Covrigei Rings picanți 200g",16],
+["Franzelă Botanica Extra 430g",10],
+["Franzelă EXTRA 430g",8],
+["Franzelă tradițională 500g",11],
+["Supă-cremă REEVA găină 17g",8],
+["Fidea REEVA legume 60g",9],
+["Tăiței REEVA găină 75g",24],
+["Cereale BONA VITA miere 250g",34],
+["Granola ROCCO ciocolată/migdale 375g",36],
+["Bile cereale cacao 250g",25],
+["Bile ciocolată START 250g",33],
+["Fulgi ovăz cu caise 300g",41],
+["Apă ROUA ARGINTIE 1.5L",13],
+["Apă GURA CĂINARULUI 1.5L",15],
+["Apă lămâie GURA CĂINARULUI 1.5L",19],
+["Apă BUCOVINA plată 1L",15],
+["Apă BUCOVINA negaz 2L",18],
+["FANTA portocale 0.5L",16],
+["JOY S Drink Limo 1.5L",15],
+["TOPIC Tutti Frutti 1.5L",14],
+["LETTO quince & pear 1.5L",24],
+["Coca-Cola 1.75L",31],
+["Sprite 1.75L",32],
+["Pepsi Twist Lime 1.5L",30],
+["Coca-Cola 1.25L",23],
+["FANTA Orange 1.25L",23],
+["Sprite 1.25L",23],
+["NATURALIS Nectar piersici 1L",23],
+["SADOCHOK suc mere 950ml",28],
+["NATURALIS Tropic 1L",23],
+["NATURALIS portocale 1L",23],
+["Mere roșii Moldova 1kg",15],
+["Mere Granny Smith 1kg",18],
+["Grapefruit 1kg",27],
+["Banane 1kg",34],
+["Chefir JLC 2.5% 0.5L",12],
+["SAVUSHKIN desert pară-banane 120g",18],
+["MULLER iaurt piersici 125g",13],
+["MULLER iaurt banane 125g",13],
+["POIANA FLORILOR iaurt căpșuni 100g",7],
+["Lapte CĂSUȚA MEA 1.5% 1L",18],
+["Lapte JLC 2.5% 1L",18],
+["Lapte MILKMARK 3.5% 900ml",27],
+["Smântână O! 20% 450g",28],
+["Smântână LATTI 15% 300g",26],
+["Biscuiți DIMINEAȚA 170g",15],
+["ROSHEN Lovita Classic 150g",24],
+["BUCURIA LAPTE TOPIT 270g",20],
+["ROSHEN Multi-cake strawberry 180g",20],
+["Chipsuri LEOD OR crab 150g",46],
+["FLINT CHIPSTER'S cașcaval 160g",41],
+["LAY'S barbecue 60g",24],
+["DORITOS Nacho Cheese 90g",30],
+["Chipsuri Люкс cașcaval 170g",46],
+["YAW! PUFFS Pizza 60g",19],
+["CROCO crackers pizza 400g",44],
+["CROCO sticks sare 80g",12],
+["CROCO crackers semințe 150g",20],
+["CROCO crackers mix 100g",13],
+["TUC smântână/ceapă 100g",20],
+["CROCO Big pizza 150g",23],
+["YAW! Baguette smântână/ceapă 50g",11],
+["YAW! Sticks Bacon 50g",11],
+["FLINT pesmeți salami 100g",17],
+["YAW! Baguette Crab Regal 120g",20],
+["FLINT pesmeți bacon 150g",23],
+["YAW! Sticks Bacon 120g",20],
+["FLINT pesmeți smântână/verdeață 100g",17],
+["BANZAI semințe sare 50g",7],
+["BANZAI semințe sare 130g",14],
+["BANZAI semințe pestrițe 165g",25],
+["BANZAI semințe sare 100g",11],
+["BARIN semințe dovleac 110g",21],
+["BANZAI semințe pestrițe 90g",17],
+["BANZAI semințe sare 180g",20],
+["Ceai PRINCESS NURI 25 plicuri",25],
+["FRESHMAKER șervețele Lavender 120buc",28],
+["Hârtie igienică ALBATROS jumbo",15]
+];
+
+const cart={};
+const productsEl=document.getElementById("products");
+const cartEl=document.getElementById("cartItems");
+
+function renderProducts(){
+ const q=document.getElementById("search").value.toLowerCase();
+ productsEl.innerHTML="";
+ products.forEach((p,i)=>{
+  if(!p[0].toLowerCase().includes(q))return;
+  const card=document.createElement("div");
+  card.className="product";
+  const title=document.createElement("h3");
+  title.textContent=p[0];
+  const price=document.createElement("p");
+  price.className="price";
+  price.textContent=p[1]+" MDL";
+  const btn=document.createElement("button");
+  btn.textContent="Adaugă în coș";
+  btn.onclick=()=>{cart[i]=(cart[i]||0)+1;renderCart()};
+  card.append(title,price,btn);
+  productsEl.append(card);
+ });
+}
+function renderCart(){
+ cartEl.innerHTML="";
+ let total=0, count=0;
+ Object.keys(cart).forEach(i=>{
+  const qty=cart[i];
+  if(qty<=0)return;
+  count++;
+  const p=products[i];
+  total+=p[1]*qty;
+  const row=document.createElement("div");
+  row.className="cart-row";
+  const name=document.createElement("span");
+  name.textContent=p[0]+" × "+qty;
+  const controls=document.createElement("span");
+  const minus=document.createElement("button");
+  minus.textContent="−";
+  minus.onclick=()=>{cart[i]--;renderCart()};
+  const plus=document.createElement("button");
+  plus.textContent="+";
+  plus.onclick=()=>{cart[i]++;renderCart()};
+  controls.append(minus," "+(p[1]*qty)+" MDL ",plus);
+  row.append(name,controls);
+  cartEl.append(row);
+ });
+ if(!count)cartEl.textContent="Coșul este gol.";
+ document.getElementById("total").textContent="Total: "+total+" MDL";
+}
+document.getElementById("search").addEventListener("input",renderProducts);
+renderProducts();
+renderCart();
+</script>
+</body>
+</html>
