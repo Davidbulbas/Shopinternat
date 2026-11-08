@@ -115,8 +115,8 @@ function renderSubscriptionCount(){
   if(!/abonamente\s*[·•-]?\s*aprobări/i.test(button.textContent.replace(/\s*\d+\s*$/,"")))continue;
   let badge=button.querySelector(".shop-subscription-count");
   if(!badge){badge=document.createElement("span");badge.className="shop-subscription-count";badge.setAttribute("aria-label","Cereri de abonament în așteptare");button.appendChild(badge)}
-  badge.hidden=pendingSubscriptionCount===0;
-  badge.textContent=String(pendingSubscriptionCount);
+  if(badge.hidden!==(pendingSubscriptionCount===0))badge.hidden=pendingSubscriptionCount===0;
+  if(badge.textContent!==String(pendingSubscriptionCount))badge.textContent=String(pendingSubscriptionCount);
  }
 }
 async function refreshSubscriptionCount(){
