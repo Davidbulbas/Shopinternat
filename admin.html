@@ -1,123 +1,329 @@
+
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ShopInternat - Admin</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f3f6f5;
-      margin: 0;
-      padding: 24px;
-    }
-    .panel {
-      max-width: 420px;
-      margin: 70px auto;
-      background: white;
-      padding: 25px;
-      border-radius: 18px;
-      box-shadow: 0 4px 20px #0001;
-    }
-    h1 { color: #176b49; }
-    input, button {
-      box-sizing: border-box;
-      width: 100%;
-      padding: 14px;
-      margin: 8px 0;
-      border-radius: 10px;
-      font-size: 16px;
-    }
-    input { border: 1px solid #ccc; }
-    button {
-      border: 0;
-      background: #176b49;
-      color: white;
-      cursor: pointer;
-    }
-    #message { color: #b42318; }
-    [hidden] { display: none !important; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShopInternat Admin</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f2f6f3;font-family:Arial,sans-serif;color:#183329}
+header{background:#176b49;color:white;padding:20px}
+header h1{margin:0;font-size:24px}
+main{max-width:850px;margin:auto;padding:16px}
+.card{background:white;padding:20px;border-radius:15px;margin:16px 0;box-shadow:0 3px 12px #0001}
+input,select,button{width:100%;padding:12px;margin:6px 0;border-radius:9px;font-size:16px}
+input,select{border:1px solid #ccd5cf}
+button{background:#176b49;color:white;border:0;cursor:pointer}
+button:disabled{opacity:.5}
+.secondary{background:#60746a}
+.danger{background:#b83232}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row button{flex:1;min-width:90px}
+.product{border-top:1px solid #ddd;padding:15px 0}
+.product img{width:75px;height:75px;object-fit:contain}
+.muted{color:#66756b}
+#status{white-space:pre-wrap}
+[hidden]{display:none!important}
+</style>
 </head>
 <body>
-  <div class="panel">
-    <h1>🔐 ShopInternat Admin</h1>
+<header>
+<h1>🛒 ShopInternat Admin</h1>
+</header>
+<main>
 
-    <form id="loginForm">
-      <input id="email" type="email"
-        placeholder="Email" required>
-      <input id="password" type="password"
-        placeholder="Parolă" required>
-      <button type="submit">Conectare</button>
-    </form>
+<section id="loginBox" class="card">
+<h2>Autentificare</h2>
+<form id="loginForm">
+<input id="email" type="email" placeholder="Email" required>
+<input id="password" type="password" placeholder="Parolă" required>
+<button>Conectare</button>
+</form>
+</section>
 
-    <p id="message"></p>
+<section id="adminBox" hidden>
+<div class="card">
+<h2>Panou administrator</h2>
+<p>Gestionează produsele magazinului.</p>
+<button id="logout" class="secondary">Deconectare</button>
+</div>
 
-    <section id="dashboard" hidden>
-      <h2>Panou administrator</h2>
-      <p>Autentificare reușită!</p>
-      <button id="logout">Deconectare</button>
-    </section>
-  </div>
+<div class="card">
+<h2 id="formTitle">Adaugă produs</h2>
+<form id="productForm">
+<input id="name" placeholder="Numele produsului" required>
+<input id="category" placeholder="Categorie" required>
+<input id="price" type="number" min="0" step="0.01" placeholder="Preț MDL" required>
+<input id="unit" placeholder="Unitate (buc, kg, g, L)">
+<input id="image_url" type="url" placeholder="Link imagine https://...">
+<label>
+<input id="is_available" type="checkbox" checked style="width:auto">
+ Disponibil
+</label>
+<button id="saveBtn">Salvează produsul</button>
+<button id="cancelEdit" type="button" class="secondary" hidden>Anulează editarea</button>
+</form>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="./supabase-config.js"></script>
-  <script>
-    const form = document.getElementById("loginForm");
-    const dashboard = document.getElementById("dashboard");
-    const message = document.getElementById("message");
+<div class="card">
+<h2>Produse</h2>
+<input id="search" placeholder="Caută produs...">
+<button id="reload" class="secondary">Reîncarcă lista</button>
+<p id="count" class="muted"></p>
+<div id="products"></div>
+</div>
+</section>
 
-    async function verifyAdmin() {
-      const { data: { user }, error } =
-        await supabaseClient.auth.getUser();
+<p id="status" role="status"></p>
+</main>
 
-      if (error || !user) return false;
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="./supabase-config.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+let products = [];
+let editingId = null;
+let adminReady = false;
 
-      const result = await supabaseClient
-        .from("admins")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+function status(message) {
+  $("status").textContent = message;
+}
 
-      return !result.error && !!result.data;
-    }
+async function checkAdmin() {
+  const {data:{user},error} =
+    await supabaseClient.auth.getUser();
 
-    async function refresh() {
-      const allowed = await verifyAdmin();
-      form.hidden = allowed;
-      dashboard.hidden = !allowed;
-      return allowed;
-    }
+  if (error || !user) return false;
 
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      message.textContent = "";
+  const result = await supabaseClient
+    .from("admins")
+    .select("user_id")
+    .eq("user_id",user.id)
+    .maybeSingle();
 
-      const { error } =
-        await supabaseClient.auth.signInWithPassword({
-          email: document.getElementById("email").value,
-          password: document.getElementById("password").value
-        });
+  return !result.error && !!result.data;
+}
 
-      if (error) {
-        message.textContent = "Email sau parolă incorectă.";
-        return;
-      }
+async function refreshAuth() {
+  adminReady = await checkAdmin();
+  $("loginBox").hidden = adminReady;
+  $("adminBox").hidden = !adminReady;
 
-      if (!(await refresh())) {
-        await supabaseClient.auth.signOut();
-        message.textContent =
-          "Contul nu are acces de administrator.";
-      }
+  if (adminReady) await loadProducts();
+}
+
+$("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  status("");
+
+  const {error} = await supabaseClient.auth
+    .signInWithPassword({
+      email:$("email").value,
+      password:$("password").value
     });
 
-    document.getElementById("logout")
-      .addEventListener("click", async () => {
-        await supabaseClient.auth.signOut();
-        await refresh();
-      });
+  if(error) {
+    status("Autentificare eșuată: "+error.message);
+    return;
+  }
 
-    refresh();
-  </script>
+  if(!(await checkAdmin())) {
+    await supabaseClient.auth.signOut();
+    status("Nu ai acces de administrator.");
+    return;
+  }
+
+  $("password").value="";
+  await refreshAuth();
+  status("Autentificare reușită!");
+});
+
+$("logout").onclick=async()=>{
+  await supabaseClient.auth.signOut();
+  adminReady=false;
+  products=[];
+  $("adminBox").hidden=true;
+  $("loginBox").hidden=false;
+  status("Te-ai deconectat.");
+};
+
+async function loadProducts(){
+  if(!adminReady) return;
+
+  const {data,error}=await supabaseClient
+    .from("products")
+    .select("id,name,category,price,unit,image_url,is_available")
+    .order("name");
+
+  if(error){
+    status("Eroare la încărcare: "+error.message);
+    return;
+  }
+
+  products=data||[];
+  renderProducts();
+}
+
+function renderProducts(){
+  const q=$("search").value.toLowerCase();
+  const list=products.filter(p=>
+    p.name.toLowerCase().includes(q)
+  );
+
+  $("count").textContent=list.length+" produse";
+  $("products").replaceChildren();
+
+  if(!list.length){
+    $("products").textContent="Nu există produse în listă.";
+    return;
+  }
+
+  for(const p of list){
+    const item=document.createElement("div");
+    item.className="product";
+
+    const title=document.createElement("strong");
+    title.textContent=p.name;
+    item.append(title);
+
+    const info=document.createElement("p");
+    info.textContent=
+      `${p.price} MDL · ${p.category||"Fără categorie"} · ${p.unit||"buc"} · ${p.is_available?"Disponibil":"Indisponibil"}`;
+    item.append(info);
+
+    if(p.image_url){
+      const img=document.createElement("img");
+      img.src=p.image_url;
+      img.alt=p.name;
+      img.loading="lazy";
+      item.append(img);
+    }
+
+    const actions=document.createElement("div");
+    actions.className="row";
+
+    const edit=document.createElement("button");
+    edit.textContent="Editează";
+    edit.onclick=()=>startEdit(p);
+
+    const toggle=document.createElement("button");
+    toggle.className="secondary";
+    toggle.textContent=p.is_available?"Ascunde":"Activează";
+    toggle.onclick=()=>toggleProduct(p);
+
+    const remove=document.createElement("button");
+    remove.className="danger";
+    remove.textContent="Șterge";
+    remove.onclick=()=>deleteProduct(p);
+
+    actions.append(edit,toggle,remove);
+    item.append(actions);
+    $("products").append(item);
+  }
+}
+
+function startEdit(p){
+  editingId=p.id;
+  $("name").value=p.name||"";
+  $("category").value=p.category||"";
+  $("price").value=p.price;
+  $("unit").value=p.unit||"";
+  $("image_url").value=p.image_url||"";
+  $("is_available").checked=p.is_available;
+  $("formTitle").textContent="Editează produsul";
+  $("cancelEdit").hidden=false;
+  $("productForm").scrollIntoView({behavior:"smooth"});
+}
+
+function resetForm(){
+  editingId=null;
+  $("productForm").reset();
+  $("formTitle").textContent="Adaugă produs";
+  $("cancelEdit").hidden=true;
+}
+
+$("cancelEdit").onclick=resetForm;
+
+$("productForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!adminReady)return;
+
+  const payload={
+    name:$("name").value.trim(),
+    category:$("category").value.trim(),
+    price:Number($("price").value),
+    unit:$("unit").value.trim()||"buc",
+    image_url:$("image_url").value.trim()||null,
+    is_available:$("is_available").checked
+  };
+
+  if(!payload.name || !Number.isFinite(payload.price) ||
+     payload.price<0){
+    status("Verifică numele și prețul.");
+    return;
+  }
+
+  $("saveBtn").disabled=true;
+
+  try{
+    const query=editingId===null
+      ?supabaseClient.from("products").insert(payload)
+      :supabaseClient.from("products")
+        .update(payload).eq("id",editingId);
+
+    const {error}=await query.select("id");
+
+    if(error)throw error;
+
+    status("Produs salvat cu succes!");
+    resetForm();
+    await loadProducts();
+  }catch(err){
+    status("Eroare la salvare: "+err.message);
+  }finally{
+    $("saveBtn").disabled=false;
+  }
+});
+
+async function toggleProduct(p){
+  const {data,error}=await supabaseClient
+    .from("products")
+    .update({is_available:!p.is_available})
+    .eq("id",p.id)
+    .select("id");
+
+  if(error || !data?.length){
+    status("Nu s-a putut modifica produsul: "+(error?.message||"Acces refuzat"));
+    return;
+  }
+
+  status("Disponibilitate actualizată.");
+  await loadProducts();
+}
+
+async function deleteProduct(p){
+  if(!confirm("Ștergi definitiv produsul "+p.name+"?"))return;
+
+  const {data,error}=await supabaseClient
+    .from("products")
+    .delete()
+    .eq("id",p.id)
+    .select("id");
+
+  if(error || !data?.length){
+    status("Nu s-a putut șterge produsul: "+(error?.message||"Acces refuzat"));
+    return;
+  }
+
+  status("Produs șters.");
+  await loadProducts();
+}
+
+$("search").addEventListener("input",renderProducts);
+$("reload").onclick=loadProducts;
+refreshAuth();
+</script>
 </body>
 </html>
+
