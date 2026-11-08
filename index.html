@@ -32,6 +32,45 @@ input:focus,select:focus,textarea:focus{border-color:#3e8e70;box-shadow:0 0 0 3p
 @keyframes shopFade{from{opacity:0}to{opacity:1}}@keyframes shopPop{from{opacity:0;transform:translateY(15px) scale(.975)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes shopSlide{from{transform:translateX(-22px);opacity:.6}to{transform:translateX(0);opacity:1}}
 @media(max-width:600px){header{padding:18px}.panel{padding:17px}.product{border-radius:15px}.product:hover{transform:none}.notice{font-size:14px}.tabs button,.categories button{padding:10px 12px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* ShopInternat — warm graphite / muted champagne premium palette */
+:root{--ink:#292b2b;--muted:#746f69;--brand:#393f43;--brand-dark:#252b30;--line:#dcd5ca;--paper:#eee9e0;--soft:#e7e0d5;--accent:#9d8260}
+body{background:linear-gradient(145deg,#d8d2c7 0%,#e3ddd2 48%,#d7d1c6 100%);color:#292b2b;font-family:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;letter-spacing:.05px}
+header{background:linear-gradient(115deg,#242a2e,#42494b);border-bottom:1px solid #a58b6555;box-shadow:0 7px 26px #24272824}
+header h1{font-weight:780;letter-spacing:-1.15px;color:#f5efe5}header p{color:#d5c9b9;letter-spacing:.35px}
+h1,h2,h3{letter-spacing:-.7px}h2{font-weight:740;color:#292c2d}h3{font-weight:690;color:#353838}
+.panel,.product,.notice{background:#eee9e1;border:1px solid #d8d0c3;box-shadow:0 7px 22px #37312a13,0 1px 3px #37312a0a}
+.notice{background:linear-gradient(120deg,#e2dbcf,#eee7db);border-color:#cfc4b3;border-left:4px solid #a78b65;color:#383b3a}
+.notice b{color:#303335}
+button{background:#393f43;color:#f7f2e9;box-shadow:0 3px 8px #292b2b18}
+button:not(:disabled):hover{background:#50575a;box-shadow:0 8px 17px #30333327}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline-color:#b39a76}
+.tabs button,.categories button{background:#e6dfd4;color:#474642;border-color:#d1c6b7}
+.tabs button:hover,.categories button:hover{background:#d8cebf;color:#292b2b}
+.tabs .active,.categories .active{background:#393f43!important;color:#f6f0e7!important;border-color:#393f43!important}
+input,select,textarea{background:#f5f0e7;border-color:#cfc5b7;color:#292b2b}
+input::placeholder,textarea::placeholder{color:#817b72}
+input:focus,select:focus,textarea:focus{border-color:#a38b68;box-shadow:0 0 0 3px #aa906b26}
+.product{background:#eee9e1}.product img{background:#f4f0e8}.product:hover{border-color:#b9aa96;box-shadow:0 12px 25px #3c33231b}
+.price{color:#655036;font-weight:780}.product-image-missing{background:#e1dbd1;color:#716b62}
+.cart-row,.history-entry,.admin-product,.day{border-color:#d8d0c4}
+.order{background:#e9e3da;border-color:#d4cbbd}.track{background:#e4e0d5;border-left-color:#9d8260}
+.drawer{background:#e9e4dc;color:#292b2b}.drawer .close{background:#d8d0c5;color:#323538}
+.support{background:#ded8cd}.support a{color:#5d4c39}
+#checkoutBtn{background:linear-gradient(110deg,#33393d,#555b5d);color:#f8f2e9}
+#checkoutMessage:not(:empty){background:#e7e1d5;border-color:#cfc3b3}
+#adminPanel{border-top-color:#a58a63}
+.cart-fab{background:linear-gradient(145deg,#343b3e,#535b5d)!important;box-shadow:0 9px 23px #272b2b55!important}
+.cart-count{background:#9b674e!important}
+.cart-modal,.shop-extra-panel{background:#eee9e1!important;color:#292b2b!important;border-color:#d2c8b9!important}
+.shop-extra-panel button{background:#393f43;color:#f6f0e7}
+.shop-extra-menu button,.shop-extra-link{background:#e1d9cc;color:#3e4140}
+.shop-extra-panel input,.shop-extra-panel textarea{background:#f5f0e7;border-color:#d0c4b4}
+.client-progress-step.active{color:#685337!important}.client-progress-step.passed .client-progress-dot,.client-progress-fill{background:#9d8260!important}
+#adminOrders select{background:#f0ebe2!important;color:#343637!important;border-color:#cbbda9!important}
+#inactive-subscription-modal>section,.subscription-overlay>section{background:#eee9e1!important;color:#292b2b!important}
+small{color:#716c65}
+@media(max-width:600px){body{background:#ded8ce}.panel,.product,.notice{box-shadow:0 4px 16px #39342d11}}
 </style></head><body><header><button id="menuButton" class="hamburger" aria-label="Meniu">☰</button><div><h1>ShopInternat</h1><p>Magazinul colegilor din internat</p></div></header><div id="overlay" class="overlay hidden"></div><aside id="drawer" class="drawer hidden"><button id="closeMenu" class="close">✕ Închide</button><h2>☰ Meniu</h2><button id="menuShop">▦ Magazin</button><button id="menuDirector">◇ Director</button><button id="menuHistory">◷ Istoric comenzi</button><button id="menuHelp">◌ Asistență clienți</button><button id="menuLogout" class="hidden">↪ Deconectează-te</button><section id="helpBox" class="support hidden"><h3>Ai întâmpinat o problemă?</h3><p>Suntem aici să te ajutăm!</p><p>📞 <a href="tel:+37360965556">060 96 555 6</a></p><p><a href="sms:+37360965556">✉️ Trimite SMS</a></p><p><a href="https://wa.me/37360965556" target="_blank" rel="noopener">💬 Scrie pe WhatsApp</a></p></section></aside><main>
 <div class="notice"><b>Program comenzi:</b> <span id="scheduleText">Se încarcă...</span><br>Comenzi până la <b>20:30</b>. Distribuire <b>21:00–21:30</b>.<br>Abonamente: 30 MDL/zi sau 100 MDL/7 zile. Maximum o comandă activă pe zi.</div>
 <section id="authPanel" class="panel"><h2>Autentificare</h2><input id="email" class="field" type="email" placeholder="Email / Gmail"><input id="password" class="field" type="password" placeholder="Parolă"><button id="loginBtn">Intră</button> <button id="signupBtn">Creează cont</button><p id="authMessage"></p></section>
