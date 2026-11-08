@@ -133,4 +133,33 @@ subscriptionBadgeObserver.observe(document.body,{childList:true,subtree:true});
 setInterval(refreshSubscriptionCount,15000);
 document.addEventListener("click",event=>{if(event.target.closest("button")?.textContent.match(/abonamente|aprob|resping/i))setTimeout(refreshSubscriptionCount,1200)},true);
 setTimeout(refreshSubscriptionCount,1000);
+
+/* Numărul propunerilor de produse în panoul directorului. */
+const suggestionBadgeStyle=document.createElement("style");
+suggestionBadgeStyle.textContent=".shop-suggestion-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;margin-left:9px;border-radius:999px;background:#d62828;color:white;font-size:12px;font-weight:800;line-height:1;vertical-align:middle;box-sizing:border-box}.shop-suggestion-count[hidden]{display:none!important}";
+document.head.append(suggestionBadgeStyle);
+let productSuggestionCount=0;
+function renderProductSuggestionCount(){
+ for(const button of document.querySelectorAll("button")){
+  if(!/propuneri\s+de\s+produse/i.test(button.textContent))continue;
+  let badge=button.querySelector(".shop-suggestion-count");
+  if(!badge){badge=document.createElement("span");badge.className="shop-suggestion-count";badge.setAttribute("aria-label","Număr propuneri de produse");button.appendChild(badge)}
+  if(badge.hidden!==(productSuggestionCount===0))badge.hidden=productSuggestionCount===0;
+  if(badge.textContent!==String(productSuggestionCount))badge.textContent=String(productSuggestionCount);
+ }
+}
+async function refreshProductSuggestionCount(){
+ if(!user||!admin){productSuggestionCount=0;renderProductSuggestionCount();return}
+ try{
+  const {count,error}=await supabaseClient.from("product_suggestions").select("id",{count:"exact",head:true});
+  if(error)throw error;
+  productSuggestionCount=count||0;
+  renderProductSuggestionCount();
+ }catch(e){console.warn("Numărul propunerilor nu a putut fi actualizat",e)}
+}
+const suggestionBadgeObserver=new MutationObserver(()=>{if(user&&admin)renderProductSuggestionCount()});
+suggestionBadgeObserver.observe(document.body,{childList:true,subtree:true});
+setInterval(refreshProductSuggestionCount,15000);
+document.addEventListener("click",event=>{if(event.target.closest("button")?.textContent.match(/propuneri\s+de\s+produse/i))setTimeout(refreshProductSuggestionCount,1200)},true);
+setTimeout(refreshProductSuggestionCount,1000);
 </script></body></html>
