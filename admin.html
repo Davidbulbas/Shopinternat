@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShopInternat - Admin</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f6f5;
+      margin: 0;
+      padding: 24px;
+    }
+    .panel {
+      max-width: 420px;
+      margin: 70px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 18px;
+      box-shadow: 0 4px 20px #0001;
+    }
+    h1 { color: #176b49; }
+    input, button {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 14px;
+      margin: 8px 0;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+    input { border: 1px solid #ccc; }
+    button {
+      border: 0;
+      background: #176b49;
+      color: white;
+      cursor: pointer;
+    }
+    #message { color: #b42318; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>🔐 ShopInternat Admin</h1>
+
+    <form id="loginForm">
+      <input id="email" type="email"
+        placeholder="Email" required>
+      <input id="password" type="password"
+        placeholder="Parolă" required>
+      <button type="submit">Conectare</button>
+    </form>
+
+    <p id="message"></p>
+
+    <section id="dashboard" hidden>
+      <h2>Panou administrator</h2>
+      <p>Autentificare reușită!</p>
+      <button id="logout">Deconectare</button>
+    </section>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="./supabase-config.js"></script>
+  <script>
+    const form = document.getElementById("loginForm");
+    const dashboard = document.getElementById("dashboard");
+    const message = document.getElementById("message");
+
+    async function verifyAdmin() {
+      const { data: { user }, error } =
+        await supabaseClient.auth.getUser();
+
+      if (error || !user) return false;
+
+      const result = await supabaseClient
+        .from("admins")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      return !result.error && !!result.data;
+    }
+
+    async function refresh() {
+      const allowed = await verifyAdmin();
+      form.hidden = allowed;
+      dashboard.hidden = !allowed;
+      return allowed;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      message.textContent = "";
+
+      const { error } =
+        await supabaseClient.auth.signInWithPassword({
+          email: document.getElementById("email").value,
+          password: document.getElementById("password").value
+        });
+
+      if (error) {
+        message.textContent = "Email sau parolă incorectă.";
+        return;
+      }
+
+      if (!(await refresh())) {
+        await supabaseClient.auth.signOut();
+        message.textContent =
+          "Contul nu are acces de administrator.";
+      }
+    });
+
+    document.getElementById("logout")
+      .addEventListener("click", async () => {
+        await supabaseClient.auth.signOut();
+        await refresh();
+      });
+
+    refresh();
+  </script>
+</body>
+</html>
