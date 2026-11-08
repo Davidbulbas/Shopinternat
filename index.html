@@ -23,7 +23,13 @@ button{background:#176b49;color:white;border:0;border-radius:9px;padding:10px;cu
 .product button{width:100%}
 .cart{background:white;border-radius:14px;padding:18px;margin-top:25px}
 .cart-row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #eee}
-.cart-row button{padding:5px 9px}
+.cart-row button{padding:7px 12px;min-width:36px}
+.cart-row{align-items:center;flex-wrap:wrap}
+.cart-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.cart-name{flex:1;min-width:140px}
+.cart-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.secondary{background:#e8f0eb;color:#176b49}
+.feedback{color:#176b49;min-height:20px}
 small{color:#666}
 </style>
 </head>
@@ -47,6 +53,8 @@ Abonament săptămânal: 100 MDL.
 <h2>🛍️ Coșul meu</h2>
 <div id="cartItems">Coșul este gol.</div>
 <h2 id="total">Total: 0 MDL</h2>
+<div class="cart-actions"><button id="clearCart" class="secondary" type="button">Golește coșul</button></div>
+<p class="feedback" id="cartFeedback" role="status" aria-live="polite"></p>
 <small>Versiune de test. Trimiterea comenzilor și plățile nu sunt încă activate.</small>
 </section>
 </main>
@@ -55,7 +63,21 @@ Abonament săptămânal: 100 MDL.
 <script src="./supabase-config.js"></script>
 <script>
 let products = [];
-const cart = {};
+const CART_KEY = "shopinternat_cart_v1";
+function readCart() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CART_KEY) || "{}");
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
+    return Object.fromEntries(Object.entries(saved).filter(([id, qty]) => id && Number.isSafeInteger(qty) && qty > 0 && qty <= 999));
+  } catch { return {}; }
+}
+const cart = readCart();
+function saveCart() { try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch {} }
+function changeQuantity(id, delta) {
+  const next = Math.max(0, Math.min(999, (cart[id] || 0) + delta));
+  if (!next) delete cart[id]; else cart[id] = next;
+  saveCart(); renderCart();
+}
 const productsEl = document.getElementById("products");
 const cartEl = document.getElementById("cartItems");
 
@@ -100,8 +122,8 @@ function renderProducts() {
     const btn = document.createElement("button");
     btn.textContent = "Adaugă în coș";
     btn.onclick = () => {
-      cart[p.id] = (cart[p.id] || 0) + 1;
-      renderCart();
+      changeQuantity(String(p.id), 1);
+      document.getElementById("cartFeedback").textContent = "Produs adăugat în coș.";
     };
 
     card.append(title, price, btn);
@@ -121,37 +143,42 @@ function renderCart() {
     const p = products.find(item => String(item.id) === id);
     if (!p) return;
 
-    count++;
-    const subtotal = Number(p.price) * qty;
+    count += qty;
+    const subtotal = (Number(p.price) || 0) * qty;
     total += subtotal;
 
     const row = document.createElement("div");
     row.className = "cart-row";
 
     const name = document.createElement("span");
+    name.className = "cart-name";
     name.textContent = p.name + " × " + qty;
 
     const controls = document.createElement("span");
+    controls.className = "cart-controls";
 
     const minus = document.createElement("button");
     minus.textContent = "−";
     minus.onclick = () => {
-      cart[id]--;
-      renderCart();
+      changeQuantity(id, -1);
     };
 
     const plus = document.createElement("button");
     plus.textContent = "+";
     plus.onclick = () => {
-      cart[id]++;
-      renderCart();
+      changeQuantity(id, 1);
     };
 
-    controls.append(
-      minus,
-      " " + subtotal.toFixed(2) + " MDL ",
-      plus
-    );
+    const remove = document.createElement("button");
+    remove.textContent = "✕";
+    remove.className = "secondary";
+    remove.setAttribute("aria-label", "Elimină " + p.name);
+    remove.onclick = () => { delete cart[id]; saveCart(); renderCart(); };
+    minus.setAttribute("aria-label", "Scade cantitatea pentru " + p.name);
+    plus.setAttribute("aria-label", "Crește cantitatea pentru " + p.name);
+    const amount = document.createElement("strong");
+    amount.textContent = subtotal.toFixed(2) + " MDL";
+    controls.append(minus, amount, plus, remove);
 
     row.append(name, controls);
     cartEl.append(row);
@@ -162,12 +189,14 @@ function renderCart() {
   }
 
   document.getElementById("total").textContent =
-    "Total: " + total.toFixed(2) + " MDL";
+    "Total: " + total.toFixed(2) + " MDL (" + count + " produse)";
+  document.getElementById("clearCart").disabled = count === 0;
 }
 
 async function loadProducts() {
   productsEl.textContent = "Se încarcă produsele...";
 
+  if (typeof supabaseClient === "undefined") { productsEl.textContent = "Conexiunea nu este disponibilă. Reîncarcă pagina."; return; }
   const { data, error } = await supabaseClient
     .from("products")
     .select("id,name,price,image_url,unit,is_available")
@@ -189,9 +218,16 @@ async function loadProducts() {
     }
   }
 
+  saveCart();
   renderProducts();
   renderCart();
 }
+
+document.getElementById("clearCart").addEventListener("click", () => {
+  for (const id of Object.keys(cart)) delete cart[id];
+  saveCart(); renderCart();
+  document.getElementById("cartFeedback").textContent = "Coșul a fost golit.";
+});
 
 document.getElementById("search")
   .addEventListener("input", renderProducts);
