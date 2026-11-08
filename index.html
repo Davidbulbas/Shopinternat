@@ -51,159 +51,153 @@ Abonament săptămânal: 100 MDL.
 </section>
 </main>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="./supabase-config.js"></script>
 <script>
-const products=[
-["Brânzică INCOMLAC vanilie/lapte condensat 50g",9],
-["Brânzică INCOMLAC vanilie/cafea 50g",9],
-["Pelmeni porc/vită 1kg",48],
-["Foitaj cașcaval 7 SPICE 75g",8],
-["Foitaj brânză 7 SPICE 70g",9],
-["Croissant 7DAYS cacao-vanilie 80g",14],
-["Croissant BOOM Double 50g",11],
-["Foitaj FRANZELUȚA cașcaval 80g",7],
-["Covrigei GALFIM 200g",18],
-["Covrigei Rings picanți 200g",16],
-["Franzelă Botanica Extra 430g",10],
-["Franzelă EXTRA 430g",8],
-["Franzelă tradițională 500g",11],
-["Supă-cremă REEVA găină 17g",8],
-["Fidea REEVA legume 60g",9],
-["Tăiței REEVA găină 75g",24],
-["Cereale BONA VITA miere 250g",34],
-["Granola ROCCO ciocolată/migdale 375g",36],
-["Bile cereale cacao 250g",25],
-["Bile ciocolată START 250g",33],
-["Fulgi ovăz cu caise 300g",41],
-["Apă ROUA ARGINTIE 1.5L",13],
-["Apă GURA CĂINARULUI 1.5L",15],
-["Apă lămâie GURA CĂINARULUI 1.5L",19],
-["Apă BUCOVINA plată 1L",15],
-["Apă BUCOVINA negaz 2L",18],
-["FANTA portocale 0.5L",16],
-["JOY S Drink Limo 1.5L",15],
-["TOPIC Tutti Frutti 1.5L",14],
-["LETTO quince & pear 1.5L",24],
-["Coca-Cola 1.75L",31],
-["Sprite 1.75L",32],
-["Pepsi Twist Lime 1.5L",30],
-["Coca-Cola 1.25L",23],
-["FANTA Orange 1.25L",23],
-["Sprite 1.25L",23],
-["NATURALIS Nectar piersici 1L",23],
-["SADOCHOK suc mere 950ml",28],
-["NATURALIS Tropic 1L",23],
-["NATURALIS portocale 1L",23],
-["Mere roșii Moldova 1kg",15],
-["Mere Granny Smith 1kg",18],
-["Grapefruit 1kg",27],
-["Banane 1kg",34],
-["Chefir JLC 2.5% 0.5L",12],
-["SAVUSHKIN desert pară-banane 120g",18],
-["MULLER iaurt piersici 125g",13],
-["MULLER iaurt banane 125g",13],
-["POIANA FLORILOR iaurt căpșuni 100g",7],
-["Lapte CĂSUȚA MEA 1.5% 1L",18],
-["Lapte JLC 2.5% 1L",18],
-["Lapte MILKMARK 3.5% 900ml",27],
-["Smântână O! 20% 450g",28],
-["Smântână LATTI 15% 300g",26],
-["Biscuiți DIMINEAȚA 170g",15],
-["ROSHEN Lovita Classic 150g",24],
-["BUCURIA LAPTE TOPIT 270g",20],
-["ROSHEN Multi-cake strawberry 180g",20],
-["Chipsuri LEOD OR crab 150g",46],
-["FLINT CHIPSTER'S cașcaval 160g",41],
-["LAY'S barbecue 60g",24],
-["DORITOS Nacho Cheese 90g",30],
-["Chipsuri Люкс cașcaval 170g",46],
-["YAW! PUFFS Pizza 60g",19],
-["CROCO crackers pizza 400g",44],
-["CROCO sticks sare 80g",12],
-["CROCO crackers semințe 150g",20],
-["CROCO crackers mix 100g",13],
-["TUC smântână/ceapă 100g",20],
-["CROCO Big pizza 150g",23],
-["YAW! Baguette smântână/ceapă 50g",11],
-["YAW! Sticks Bacon 50g",11],
-["FLINT pesmeți salami 100g",17],
-["YAW! Baguette Crab Regal 120g",20],
-["FLINT pesmeți bacon 150g",23],
-["YAW! Sticks Bacon 120g",20],
-["FLINT pesmeți smântână/verdeață 100g",17],
-["BANZAI semințe sare 50g",7],
-["BANZAI semințe sare 130g",14],
-["BANZAI semințe pestrițe 165g",25],
-["BANZAI semințe sare 100g",11],
-["BARIN semințe dovleac 110g",21],
-["BANZAI semințe pestrițe 90g",17],
-["BANZAI semințe sare 180g",20],
-["Ceai PRINCESS NURI 25 plicuri",25],
-["FRESHMAKER șervețele Lavender 120buc",28],
-["Hârtie igienică ALBATROS jumbo",15]
-];
+let products = [];
+const cart = {};
+const productsEl = document.getElementById("products");
+const cartEl = document.getElementById("cartItems");
 
-const cart={};
-const productsEl=document.getElementById("products");
-const cartEl=document.getElementById("cartItems");
+function renderProducts() {
+  const q = document.getElementById("search").value
+    .toLowerCase().trim();
 
-function renderProducts(){
- const q=document.getElementById("search").value.toLowerCase();
- productsEl.innerHTML="";
- products.forEach((p,i)=>{
-  if(!p[0].toLowerCase().includes(q))return;
-  const card=document.createElement("div");
-  card.className="product";
-  const title=document.createElement("h3");
-  title.textContent=p[0];
-  const price=document.createElement("p");
-  price.className="price";
-  price.textContent=p[1]+" MDL";
-  const btn=document.createElement("button");
-  btn.textContent="Adaugă în coș";
-  btn.onclick=()=>{cart[i]=(cart[i]||0)+1;renderCart()};
-  card.append(title,price,btn);
-  productsEl.append(card);
- });
-}
-function renderCart(){
- cartEl.innerHTML="";
- let total=0, count=0;
- Object.keys(cart).forEach(i=>{
-  const qty=cart[i];
-  if(qty<=0)return;
-  count++;
-  const p=products[i];
-  total+=p[1]*qty;
-  const row=document.createElement("div");
-  row.className="cart-row";
-  const name=document.createElement("span");
-  name.textContent=p[0]+" × "+qty;
-  const controls=document.createElement("span");
-  const minus=document.createElement("button");
-  minus.textContent="−";
-  minus.onclick=()=>{cart[i]--;renderCart()};
-  const plus=document.createElement("button");
-  plus.textContent="+";
-  plus.onclick=()=>{cart[i]++;renderCart()};
-  controls.append(minus," "+(p[1]*qty)+" MDL ",plus);
-  row.append(name,controls);
-  cartEl.append(row);
- });
- if(!count)cartEl.textContent="Coșul este gol.";
- document.getElementById("total").textContent="Total: "+total+" MDL";
-}
-document.getElementById("search").addEventListener("input",renderProducts);
-renderProducts();
-renderCart();
-</script> <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="./supabase-config.js"></script> 
-<script>
-supabaseClient.from("products").select("id").limit(1)
-  .then(({ error }) => {
-    alert(error
-      ? "Eroare Supabase: " + error.message
-      : "Conexiune Supabase reușită!");
+  productsEl.replaceChildren();
+
+  const visible = products.filter(p =>
+    p.name.toLowerCase().includes(q)
+  );
+
+  if (!visible.length) {
+    productsEl.textContent = "Nu există produse disponibile.";
+    return;
+  }
+
+  visible.forEach(p => {
+    const card = document.createElement("div");
+    card.className = "product";
+
+    if (p.image_url) {
+      const img = document.createElement("img");
+      img.src = p.image_url;
+      img.alt = p.name;
+      img.loading = "lazy";
+      img.style.cssText =
+        "width:100%;height:125px;object-fit:contain";
+      card.append(img);
+    }
+
+    const title = document.createElement("h3");
+    title.textContent = p.name;
+
+    const price = document.createElement("p");
+    price.className = "price";
+    price.textContent =
+      Number(p.price).toFixed(2) +
+      " MDL / " + (p.unit || "buc");
+
+    const btn = document.createElement("button");
+    btn.textContent = "Adaugă în coș";
+    btn.onclick = () => {
+      cart[p.id] = (cart[p.id] || 0) + 1;
+      renderCart();
+    };
+
+    card.append(title, price, btn);
+    productsEl.append(card);
   });
+}
+
+function renderCart() {
+  cartEl.replaceChildren();
+  let total = 0;
+  let count = 0;
+
+  Object.keys(cart).forEach(id => {
+    const qty = cart[id];
+    if (qty <= 0) return;
+
+    const p = products.find(item => String(item.id) === id);
+    if (!p) return;
+
+    count++;
+    const subtotal = Number(p.price) * qty;
+    total += subtotal;
+
+    const row = document.createElement("div");
+    row.className = "cart-row";
+
+    const name = document.createElement("span");
+    name.textContent = p.name + " × " + qty;
+
+    const controls = document.createElement("span");
+
+    const minus = document.createElement("button");
+    minus.textContent = "−";
+    minus.onclick = () => {
+      cart[id]--;
+      renderCart();
+    };
+
+    const plus = document.createElement("button");
+    plus.textContent = "+";
+    plus.onclick = () => {
+      cart[id]++;
+      renderCart();
+    };
+
+    controls.append(
+      minus,
+      " " + subtotal.toFixed(2) + " MDL ",
+      plus
+    );
+
+    row.append(name, controls);
+    cartEl.append(row);
+  });
+
+  if (!count) {
+    cartEl.textContent = "Coșul este gol.";
+  }
+
+  document.getElementById("total").textContent =
+    "Total: " + total.toFixed(2) + " MDL";
+}
+
+async function loadProducts() {
+  productsEl.textContent = "Se încarcă produsele...";
+
+  const { data, error } = await supabaseClient
+    .from("products")
+    .select("id,name,price,image_url,unit,is_available")
+    .eq("is_available", true)
+    .order("name");
+
+  if (error) {
+    productsEl.textContent =
+      "Eroare la încărcarea produselor: " + error.message;
+    return;
+  }
+
+  products = data || [];
+
+  // Elimină din coș produsele care nu mai sunt disponibile.
+  for (const id of Object.keys(cart)) {
+    if (!products.some(p => String(p.id) === id)) {
+      delete cart[id];
+    }
+  }
+
+  renderProducts();
+  renderCart();
+}
+
+document.getElementById("search")
+  .addEventListener("input", renderProducts);
+
+renderCart();
+loadProducts();
 </script>
 
 </body>
