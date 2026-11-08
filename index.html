@@ -1,240 +1,35 @@
-
-<!DOCTYPE html>
-<html lang="ro">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ShopInternat</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f5f7fa;color:#17212b}
-header{background:#176b49;color:white;padding:22px 16px}
-header h1{margin:0;font-size:28px}
-header p{margin:8px 0 0}
-main{max-width:1050px;margin:auto;padding:18px}
-.notice{background:#e4f3e9;padding:14px;border-radius:12px;margin-bottom:16px}
-input,button{font:inherit}
-#search{width:100%;padding:14px;border:1px solid #ddd;border-radius:12px;margin-bottom:18px}
-.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px}
-.product{background:white;border-radius:14px;padding:15px;box-shadow:0 2px 8px #0000000b}
-.product h3{font-size:15px;min-height:55px}
-.price{font-size:19px;font-weight:bold;color:#176b49}
-button{background:#176b49;color:white;border:0;border-radius:9px;padding:10px;cursor:pointer}
-.product button{width:100%}
-.cart{background:white;border-radius:14px;padding:18px;margin-top:25px}
-.cart-row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #eee}
-.cart-row button{padding:7px 12px;min-width:36px}
-.cart-row{align-items:center;flex-wrap:wrap}
-.cart-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.cart-name{flex:1;min-width:140px}
-.cart-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.secondary{background:#e8f0eb;color:#176b49}
-.feedback{color:#176b49;min-height:20px}
-small{color:#666}
-</style>
-</head>
-<body>
-<header>
-<h1>🛒 ShopInternat</h1>
-<p>Magazinul colegilor din internat</p>
-</header>
-<main>
-<div class="notice">
-<b>Program:</b> Luni, Marți, Joi și Vineri.<br>
-Comenzi până la 20:00. Livrare aproximativ 21:00–21:30.<br>
-Abonament săptămânal: 100 MDL.
-</div>
-
-<h2>Produse</h2>
-<input id="search" placeholder="🔎 Caută un produs...">
-<div class="products" id="products"></div>
-
-<section class="cart">
-<h2>🛍️ Coșul meu</h2>
-<div id="cartItems">Coșul este gol.</div>
-<h2 id="total">Total: 0 MDL</h2>
-<div class="cart-actions"><button id="clearCart" class="secondary" type="button">Golește coșul</button></div>
-<p class="feedback" id="cartFeedback" role="status" aria-live="polite"></p>
-<small>Versiune de test. Trimiterea comenzilor și plățile nu sunt încă activate.</small>
-</section>
-</main>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="./supabase-config.js"></script>
-<script>
-let products = [];
-const CART_KEY = "shopinternat_cart_v1";
-function readCart() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(CART_KEY) || "{}");
-    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return {};
-    return Object.fromEntries(Object.entries(saved).filter(([id, qty]) => id && Number.isSafeInteger(qty) && qty > 0 && qty <= 999));
-  } catch { return {}; }
-}
-const cart = readCart();
-function saveCart() { try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch {} }
-function changeQuantity(id, delta) {
-  const next = Math.max(0, Math.min(999, (cart[id] || 0) + delta));
-  if (!next) delete cart[id]; else cart[id] = next;
-  saveCart(); renderCart();
-}
-const productsEl = document.getElementById("products");
-const cartEl = document.getElementById("cartItems");
-
-function renderProducts() {
-  const q = document.getElementById("search").value
-    .toLowerCase().trim();
-
-  productsEl.replaceChildren();
-
-  const visible = products.filter(p =>
-    p.name.toLowerCase().includes(q)
-  );
-
-  if (!visible.length) {
-    productsEl.textContent = "Nu există produse disponibile.";
-    return;
-  }
-
-  visible.forEach(p => {
-    const card = document.createElement("div");
-    card.className = "product";
-
-    if (p.image_url) {
-      const img = document.createElement("img");
-      img.src = p.image_url;
-      img.alt = p.name;
-      img.loading = "lazy";
-      img.style.cssText =
-        "width:100%;height:125px;object-fit:contain";
-      card.append(img);
-    }
-
-    const title = document.createElement("h3");
-    title.textContent = p.name;
-
-    const price = document.createElement("p");
-    price.className = "price";
-    price.textContent =
-      Number(p.price).toFixed(2) +
-      " MDL / " + (p.unit || "buc");
-
-    const btn = document.createElement("button");
-    btn.textContent = "Adaugă în coș";
-    btn.onclick = () => {
-      changeQuantity(String(p.id), 1);
-      document.getElementById("cartFeedback").textContent = "Produs adăugat în coș.";
-    };
-
-    card.append(title, price, btn);
-    productsEl.append(card);
-  });
-}
-
-function renderCart() {
-  cartEl.replaceChildren();
-  let total = 0;
-  let count = 0;
-
-  Object.keys(cart).forEach(id => {
-    const qty = cart[id];
-    if (qty <= 0) return;
-
-    const p = products.find(item => String(item.id) === id);
-    if (!p) return;
-
-    count += qty;
-    const subtotal = (Number(p.price) || 0) * qty;
-    total += subtotal;
-
-    const row = document.createElement("div");
-    row.className = "cart-row";
-
-    const name = document.createElement("span");
-    name.className = "cart-name";
-    name.textContent = p.name + " × " + qty;
-
-    const controls = document.createElement("span");
-    controls.className = "cart-controls";
-
-    const minus = document.createElement("button");
-    minus.textContent = "−";
-    minus.onclick = () => {
-      changeQuantity(id, -1);
-    };
-
-    const plus = document.createElement("button");
-    plus.textContent = "+";
-    plus.onclick = () => {
-      changeQuantity(id, 1);
-    };
-
-    const remove = document.createElement("button");
-    remove.textContent = "✕";
-    remove.className = "secondary";
-    remove.setAttribute("aria-label", "Elimină " + p.name);
-    remove.onclick = () => { delete cart[id]; saveCart(); renderCart(); };
-    minus.setAttribute("aria-label", "Scade cantitatea pentru " + p.name);
-    plus.setAttribute("aria-label", "Crește cantitatea pentru " + p.name);
-    const amount = document.createElement("strong");
-    amount.textContent = subtotal.toFixed(2) + " MDL";
-    controls.append(minus, amount, plus, remove);
-
-    row.append(name, controls);
-    cartEl.append(row);
-  });
-
-  if (!count) {
-    cartEl.textContent = "Coșul este gol.";
-  }
-
-  document.getElementById("total").textContent =
-    "Total: " + total.toFixed(2) + " MDL (" + count + " produse)";
-  document.getElementById("clearCart").disabled = count === 0;
-}
-
-async function loadProducts() {
-  productsEl.textContent = "Se încarcă produsele...";
-
-  if (typeof supabaseClient === "undefined") { productsEl.textContent = "Conexiunea nu este disponibilă. Reîncarcă pagina."; return; }
-  const { data, error } = await supabaseClient
-    .from("products")
-    .select("id,name,price,image_url,unit,is_available")
-    .eq("is_available", true)
-    .order("name");
-
-  if (error) {
-    productsEl.textContent =
-      "Eroare la încărcarea produselor: " + error.message;
-    return;
-  }
-
-  products = data || [];
-
-  // Elimină din coș produsele care nu mai sunt disponibile.
-  for (const id of Object.keys(cart)) {
-    if (!products.some(p => String(p.id) === id)) {
-      delete cart[id];
-    }
-  }
-
-  saveCart();
-  renderProducts();
-  renderCart();
-}
-
-document.getElementById("clearCart").addEventListener("click", () => {
-  for (const id of Object.keys(cart)) delete cart[id];
-  saveCart(); renderCart();
-  document.getElementById("cartFeedback").textContent = "Coșul a fost golit.";
-});
-
-document.getElementById("search")
-  .addEventListener("input", renderProducts);
-
-renderCart();
-loadProducts();
-</script>
-
-</body>
-</html>
+<!doctype html><html lang="ro"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ShopInternat</title><style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7fa;color:#17212b;font:16px Arial}header{background:#176b49;color:white;padding:18px;display:flex;gap:14px;align-items:center}h1{margin:0;font-size:25px}header p{margin:5px 0}main{max-width:1100px;margin:auto;padding:18px}.panel,.product,.notice{background:white;border-radius:14px;padding:16px;margin-bottom:15px;box-shadow:0 2px 8px #0001}.notice{background:#e4f3e9}button{background:#176b49;color:white;border:0;border-radius:9px;padding:10px 14px;cursor:pointer;font:inherit}button:disabled{opacity:.5}input,select{padding:10px;border:1px solid #ccc;border-radius:9px;font:inherit;max-width:100%}.field{width:100%;margin:7px 0 12px}.hidden{display:none!important}.tabs,.categories{display:flex;gap:8px;overflow-x:auto;margin:10px 0}.tabs button,.categories button{white-space:nowrap;background:white;color:#176b49;border:1px solid #c4dccc}.tabs .active,.categories .active{background:#176b49;color:white}.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}.product{margin:0}.product img{width:100%;height:125px;object-fit:contain}.product h3{font-size:15px;min-height:55px}.price{font-weight:bold;color:#176b49}.product button{width:100%}.cart-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;border-bottom:1px solid #ddd;padding:10px 0}.cart-row button{padding:6px 10px}.order{padding:15px;margin:10px 0;background:#f8faf9;border:1px solid #e1eae3;border-radius:12px}.track{border-left:4px solid #176b49;padding:13px;background:#edf7f0;border-radius:10px;margin:10px 0}.history-entry{border-bottom:1px solid #ddd;padding:14px 0}.admin-product{display:grid;grid-template-columns:2fr 1fr 1fr auto auto;gap:8px;padding:10px 0;border-bottom:1px solid #ddd}.admin-product input{width:100%}.day{display:flex;gap:12px;padding:12px;border-bottom:1px solid #ddd}.hamburger{background:transparent;font-size:26px}.overlay{position:fixed;inset:0;background:#0008;z-index:10}.drawer{position:fixed;inset:0 auto 0 0;width:min(340px,88vw);background:white;z-index:11;padding:22px;box-shadow:0 0 25px #0004;overflow:auto}.drawer button{display:block;width:100%;text-align:left;margin:10px 0}.drawer .close{background:#eee;color:#222}.support{background:#e9f4ec;padding:15px;border-radius:12px}.support a{color:#176b49}@media(max-width:600px){.admin-product{grid-template-columns:1fr 1fr}.admin-product .wide{grid-column:1/-1}}
+</style></head><body><header><button id="menuButton" class="hamburger" aria-label="Meniu">☰</button><div><h1>ShopInternat</h1><p>Magazinul colegilor din internat</p></div></header><div id="overlay" class="overlay hidden"></div><aside id="drawer" class="drawer hidden"><button id="closeMenu" class="close">✕ Închide</button><h2>☰ Meniu</h2><button id="menuShop">🛒 Magazin</button><button id="menuDirector">🔐 Director</button><button id="menuHistory">📜 Istoric comenzi</button><button id="menuHelp">💬 Asistență clienți</button><button id="menuLogout" class="hidden">🚪 Deconectează-te</button><section id="helpBox" class="support hidden"><h3>Ai întâmpinat o problemă?</h3><p>Suntem aici să te ajutăm!</p><p>📞 <a href="tel:+37360965556">060 96 555 6</a></p><p><a href="sms:+37360965556">✉️ Trimite SMS</a></p><p><a href="https://wa.me/37360965556" target="_blank" rel="noopener">💬 Scrie pe WhatsApp</a></p></section></aside><main>
+<div class="notice"><b>Program comenzi:</b> <span id="scheduleText">Se încarcă...</span><br>Comenzi până la <b>19:30</b>. Distribuire <b>21:00–21:30</b>.<br>Abonament săptămânal: 100 MDL. Maximum o comandă activă pe zi.</div>
+<section id="authPanel" class="panel"><h2>Autentificare</h2><input id="email" class="field" type="email" placeholder="Email / Gmail"><input id="password" class="field" type="password" placeholder="Parolă"><button id="loginBtn">Intră</button> <button id="signupBtn">Creează cont</button><p id="authMessage"></p></section>
+<section id="shopSection" class="hidden"><section class="panel"><h2>Date pentru livrare</h2><input id="phone" class="field" type="tel" placeholder="Număr de telefon"><input id="room" class="field" placeholder="Numărul camerei"><button id="saveProfile">Salvează datele</button><p id="profileMessage"></p></section><section id="trackingSection" class="panel hidden"><h2>📍 Urmărește comanda</h2><div id="tracking"></div><button id="refreshTracking">Actualizează stadiul</button></section><h2>Produse</h2><input id="search" class="field" placeholder="🔎 Caută un produs..."><nav id="categories" class="categories"></nav><div id="products" class="products"></div><section class="panel"><h2>🛍️ Coșul meu</h2><div id="cartItems"></div><h2 id="total">Total: 0 MDL</h2><button id="checkoutBtn">Trimite comanda</button><p id="checkoutMessage"></p><small>Plata online nu este activată.</small></section></section>
+<section id="historySection" class="panel hidden"><h2>📜 Istoric comenzi</h2><p>Comenzile livrate și cele anulate după ora 21:30.</p><button id="refreshHistory">Actualizează istoricul</button> <button id="backToShop">Înapoi la magazin</button><div id="historyList"></div></section>
+<section id="adminPanel" class="panel hidden"><h2>Panou director</h2><nav class="tabs"><button id="ordersTab" class="active">📦 Comenzi</button><button id="productsTab">✏️ Editare produse</button><button id="daysTab">📅 Editare zile</button></nav><section id="ordersView"><h3>Comenzi primite</h3><button id="refreshOrders">Actualizează comenzile</button><div id="adminOrders"></div></section><section id="productsView" class="hidden"><h3>Editare produse</h3><div id="adminProducts"></div></section><section id="daysView" class="hidden"><h3>Zile de distribuire</h3><div id="daysList"></div><button id="saveDays">Salvează zilele</button><p id="daysMessage"></p></section></section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script><script src="./supabase-config.js"></script><script>
+const $=id=>document.getElementById(id),show=(id,b)=>$(id).classList.toggle("hidden",!b),msg=(id,s)=>$(id).textContent=s;
+let products=[],cart={},user=null,profile=null,admin=false,mode="shop",category="Toate";const images={"2":1,"3":2,"4":3,"5":15,"6":16,"7":17,"8":18,"9":19,"10":21,"11":22,"12":23,"14":24,"15":27,"16":26,"17":25,"18":28,"20":30,"21":29,"22":32,"23":37,"24":38,"25":39,"26":40,"27":40,"28":41,"29":42,"30":43,"31":44,"32":45,"33":46,"34":47,"35":48,"36":49,"37":50,"38":51,"39":52,"40":53,"41":54,"42":55,"43":56,"44":57,"45":58,"46":4,"47":5,"48":7,"49":8,"50":9,"51":12,"52":11,"53":10,"54":13,"55":14,"56":33,"57":34,"58":35,"59":36,"60":59,"61":60,"62":61,"63":62,"64":63,"65":64,"66":65,"67":66,"68":67,"69":68,"70":69,"71":70,"72":71,"73":72,"74":73,"75":74,"76":75,"77":76,"78":77,"79":78,"80":79,"81":80,"82":81,"83":82,"84":83,"85":84,"86":85,"87":86,"88":87},days=["Luni","Marți","Miercuri","Joi","Vineri","Sâmbătă","Duminică"];
+const cash=n=>Number(n).toFixed(2)+" MDL",fruit=p=>p.category==="Fructe",localDate=d=>new Intl.DateTimeFormat("ro-MD",{timeZone:"Europe/Chisinau",day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(d));
+function afterCutoff(d){const a=new Date(d),parts=Object.fromEntries(new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Chisinau",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()).map(x=>[x.type,x.value]));const b=Object.fromEntries(new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Chisinau",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",hour12:false}).formatToParts(a).map(x=>[x.type,x.value]));return [parts.year,parts.month,parts.day].join("-")>[b.year,b.month,b.day].join("-")||([parts.year,parts.month,parts.day].join("-")===[b.year,b.month,b.day].join("-")&&(Number(parts.hour)>21||(Number(parts.hour)===21&&Number(parts.minute)>=30)))}
+function menu(b){show("drawer",b);show("overlay",b)}$("menuButton").onclick=()=>menu(true);$("closeMenu").onclick=$("overlay").onclick=()=>menu(false);$("menuHelp").onclick=()=>show("helpBox",$("helpBox").classList.contains("hidden"));
+async function navigate(m){mode=m;menu(false);await session()}$("menuShop").onclick=()=>navigate("shop");$("menuDirector").onclick=()=>navigate("admin");$("menuHistory").onclick=()=>navigate("history");$("backToShop").onclick=()=>navigate("shop");$("menuLogout").onclick=async()=>{await supabaseClient.auth.signOut();await navigate("shop")};
+async function schedule(){const {data,error}=await supabaseClient.from("shop_schedule").select("weekday,enabled").order("weekday");msg("scheduleText",error?"Program indisponibil":(data||[]).filter(x=>x.enabled).map(x=>days[x.weekday-1]).join(", ")||"Momentan închis");return data||[]}
+function categories(){const all=["Toate",...new Set(products.filter(x=>x.is_available).map(x=>x.category||"Altele"))];$("categories").replaceChildren();all.forEach(c=>{const b=document.createElement("button");b.textContent=c;b.className=c===category?"active":"";b.onclick=()=>{category=c;categories();renderProducts()};$("categories").append(b)})}
+function renderProducts(){const el=$("products"),q=$("search").value.toLowerCase().trim();el.replaceChildren();for(const p of products.filter(x=>x.is_available&&(category==="Toate"||x.category===category)&&x.name.toLowerCase().includes(q))){const card=document.createElement("article");card.className="product";if(images[p.id]){const im=document.createElement("img");im.src="https://raw.githubusercontent.com/Davidbulbas/Shopinternat/main/images/produs_"+String(images[p.id]).padStart(3,"0")+".jpg";im.alt=p.name;im.loading="lazy";im.onerror=()=>im.style.display="none";card.append(im)}const h=document.createElement("h3");h.textContent=p.name;const price=document.createElement("p");price.className="price";price.textContent=cash(p.price)+" / "+(p.unit||"buc");card.append(h,price);let qtyInput;if(fruit(p)){qtyInput=document.createElement("input");qtyInput.type="number";qtyInput.min="50";qtyInput.max="10000";qtyInput.step="50";qtyInput.value="500";qtyInput.className="field";const estimate=document.createElement("p");const update=()=>estimate.textContent="Preț: "+cash(p.price*Number(qtyInput.value)/1000);qtyInput.oninput=update;update();card.append(qtyInput,estimate)}const b=document.createElement("button");b.textContent="Adaugă în coș";b.onclick=()=>{let qty=1;if(qtyInput){const g=Number(qtyInput.value);if(!Number.isInteger(g)||g<50||g>10000){alert("Alege între 50 și 10000 grame");return}qty=g/1000}cart[p.id]=Math.round(((cart[p.id]||0)+qty)*1000)/1000;renderCart()};card.append(b);el.append(card)}if(!el.childElementCount)el.textContent="Nu există produse disponibile."}
+function renderCart(){const el=$("cartItems");el.replaceChildren();let total=0;for(const [id,qty] of Object.entries(cart)){if(qty<=0)continue;const p=products.find(x=>String(x.id)===id);if(!p)continue;total+=p.price*qty;const row=document.createElement("div");row.className="cart-row";const label=document.createElement("span");label.textContent=p.name+" × "+(fruit(p)?Math.round(qty*1000)+" g":qty);const ctr=document.createElement("span");for(const [sign,delta] of [["−",-1],["+",1]]){const b=document.createElement("button");b.textContent=sign;b.onclick=()=>{cart[id]=Math.max(0,Math.round((cart[id]+delta*(fruit(p)?0.1:1))*1000)/1000);renderCart()};ctr.append(b)}const amount=document.createElement("span");amount.textContent=cash(p.price*qty);row.append(label,amount,ctr);el.append(row)}if(!el.childElementCount)el.textContent="Coșul este gol.";msg("total","Total: "+cash(total))}
+async function loadProducts(){const {data,error}=await supabaseClient.from("products").select("id,name,price,image_url,unit,is_available,category").order("id");if(error){msg("products",error.message);return}products=data||[];categories();renderProducts();renderCart();if(admin)renderAdminProducts()}
+async function session(){const {data:{user:u}}=await supabaseClient.auth.getUser();user=u;admin=false;profile=null;if(user){const [p,a]=await Promise.all([supabaseClient.from("profiles").select("*").eq("id",user.id).maybeSingle(),supabaseClient.from("admins").select("user_id").eq("user_id",user.id).maybeSingle()]);profile=p.data;admin=!!a.data;if(profile){$("phone").value=profile.phone||"";$("room").value=profile.room_number||""}}if(mode==="admin"&&user&&!admin){mode="shop";alert("Acces interzis: acest cont nu este director.")}show("authPanel",!user);show("menuLogout",!!user);show("shopSection",!!user&&mode==="shop");show("historySection",!!user&&mode==="history");show("adminPanel",!!user&&mode==="admin"&&admin);if(user&&mode==="shop")await tracking();if(user&&mode==="history")await history();if(user&&mode==="admin"&&admin)await adminOrders()}
+$("loginBtn").onclick=async()=>{const {error}=await supabaseClient.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error)msg("authMessage",error.message);else{msg("authMessage","");await session()}};$("signupBtn").onclick=async()=>{const {error}=await supabaseClient.auth.signUp({email:$("email").value.trim(),password:$("password").value});msg("authMessage",error?error.message:"Verifică emailul pentru confirmare.")};
+$("saveProfile").onclick=async()=>{if(!user)return;const phone=$("phone").value.trim(),room=$("room").value.trim();if(phone.length<6||!room){msg("profileMessage","Completează telefonul și camera.");return}const {error}=await supabaseClient.from("profiles").upsert({id:user.id,phone,room_number:room},{onConflict:"id"});msg("profileMessage",error?error.message:"Date salvate!");if(!error)await session()};
+$("checkoutBtn").onclick=async()=>{if(!profile?.phone||!profile?.room_number){msg("checkoutMessage","Salvează telefonul și camera.");return}const items=Object.entries(cart).filter(([id,q])=>q>0).map(([id,q])=>({product_id:Number(id),quantity:q}));if(!items.length){msg("checkoutMessage","Coșul este gol.");return}const btn=$("checkoutBtn");btn.disabled=true;const {data,error}=await supabaseClient.rpc("place_shop_order",{p_items:items});btn.disabled=false;if(error){msg("checkoutMessage",error.message);return}cart={};renderCart();msg("checkoutMessage","Comanda #"+data+" a fost trimisă!");await tracking();try{const {data:{session:s}}=await supabaseClient.auth.getSession();if(s?.access_token)await fetch("/api/notify",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+s.access_token},body:JSON.stringify({order_id:data})})}catch(e){console.warn("Notificarea email nu a putut fi trimisă",e)}};
+function orderCard(o,hist){const div=document.createElement("div");div.className=hist?"history-entry":"track";const h=document.createElement("h3");h.textContent="Comanda #"+o.id+" — "+({new:"Nouă — primită",preparing:"În pregătire",delivering:"În livrare",delivered:"Livrată",cancelled:"❌ Anulată"}[o.status]||o.status);div.append(h);const p=document.createElement("p");p.textContent="Plasată: "+localDate(o.created_at)+" • Total: "+cash(o.total);div.append(p);const ul=document.createElement("ul");for(const i of o.order_items||[]){const li=document.createElement("li");li.textContent=i.product_name+" × "+i.quantity;ul.append(li)}div.append(ul);if(!hist&&o.status==="cancelled"){const n=document.createElement("p");n.textContent="Comanda a fost anulată. Va trece în istoric după 21:30.";div.append(n)}if(!hist&&["new","preparing"].includes(o.status)){const b=document.createElement("button");b.textContent="❌ Anulează comanda";b.onclick=async()=>{if(!confirm("Sigur vrei să anulezi comanda #"+o.id+"? Poți plasa alta până la ora 19:30."))return;b.disabled=true;const {error}=await supabaseClient.rpc("cancel_my_shop_order",{p_order_id:o.id});if(error)alert(error.message);await tracking()};div.append(b)}return div}
+async function tracking(){if(!user)return;const el=$("tracking");el.textContent="Se încarcă...";const {data,error}=await supabaseClient.from("orders").select("id,total,status,created_at,order_items(product_name,quantity,unit_price)").eq("user_id",user.id).neq("status","delivered").order("created_at",{ascending:false}).limit(30);el.replaceChildren();if(error){show("trackingSection",true);el.textContent=error.message;return}const active=(data||[]).filter(o=>o.status!=="cancelled"||!afterCutoff(o.created_at));show("trackingSection",active.length>0);for(const o of active)el.append(orderCard(o,false))}
+async function history(){if(!user)return;const el=$("historyList");el.textContent="Se încarcă...";const {data,error}=await supabaseClient.from("orders").select("id,total,status,created_at,order_items(product_name,quantity,unit_price)").eq("user_id",user.id).order("created_at",{ascending:false}).limit(100);el.replaceChildren();if(error){el.textContent=error.message;return}const done=(data||[]).filter(o=>o.status==="delivered"||(o.status==="cancelled"&&afterCutoff(o.created_at)));if(!done.length)el.textContent="Nu există comenzi în istoric.";for(const o of done)el.append(orderCard(o,true))}
+$("refreshTracking").onclick=tracking;$("refreshHistory").onclick=history;
+function tab(t){for(const v of ["orders","products","days"]){show(v+"View",v===t);$(v+"Tab").className=v===t?"active":""}if(t==="orders")adminOrders();if(t==="products")renderAdminProducts();if(t==="days")loadDays()}$("ordersTab").onclick=()=>tab("orders");$("productsTab").onclick=()=>tab("products");$("daysTab").onclick=()=>tab("days");$("refreshOrders").onclick=adminOrders;
+async function adminOrders(){if(!admin)return;const el=$("adminOrders");el.textContent="Se încarcă...";const [o,p,e]=await Promise.all([supabaseClient.from("orders").select("id,total,status,created_at,user_id,order_items(product_name,quantity,unit_price)").order("created_at",{ascending:false}).limit(200),supabaseClient.from("profiles").select("id,phone,room_number"),supabaseClient.rpc("shop_admin_order_emails")]);el.replaceChildren();if(o.error){el.textContent=o.error.message;return}const profiles=new Map((p.data||[]).map(x=>[x.id,x])),emails=new Map((e.data||[]).map(x=>[x.user_id,x.email]));if(!o.data?.length)el.textContent="Nu există comenzi.";for(const order of o.data||[]){const c=profiles.get(order.user_id)||{},div=document.createElement("article");div.className="order";const h=document.createElement("h3");h.textContent="Comanda #"+order.id+" — "+cash(order.total);div.append(h);for(const line of ["📅 "+localDate(order.created_at),"🚪 Camera: "+(c.room_number||"Nespecificată"),"📞 Telefon: "+(c.phone||"Nespecificat"),"✉️ Email: "+(emails.get(order.user_id)||"Indisponibil")]){const p=document.createElement("p");p.textContent=line;div.append(p)}const ul=document.createElement("ul");for(const it of order.order_items||[]){const li=document.createElement("li");li.textContent=it.product_name+" — "+it.quantity+" × "+cash(it.unit_price);ul.append(li)}div.append(ul);const sel=document.createElement("select");for(const [v,label] of [["new","Nouă"],["preparing","În pregătire"],["delivering","În livrare"],["delivered","Livrată"],["cancelled","Anulată"]]){const op=document.createElement("option");op.value=v;op.textContent=label;sel.append(op)}sel.value=order.status;sel.onchange=async()=>{const {error}=await supabaseClient.from("orders").update({status:sel.value}).eq("id",order.id);if(error){alert(error.message);sel.value=order.status}else order.status=sel.value};div.append("Statut: ",sel);el.append(div)}}
+function renderAdminProducts(){if(!admin)return;const el=$("adminProducts");el.replaceChildren();for(const p of products){const row=document.createElement("div");row.className="admin-product";const name=document.createElement("input");name.className="wide";name.value=p.name;const price=document.createElement("input");price.type="number";price.min="0";price.step="0.01";price.value=p.price;const cat=document.createElement("input");cat.value=p.category||"";const available=document.createElement("input");available.type="checkbox";available.checked=p.is_available;const save=document.createElement("button");save.textContent="Salvează";save.onclick=async()=>{const {error}=await supabaseClient.from("products").update({name:name.value,price:Number(price.value),category:cat.value,is_available:available.checked}).eq("id",p.id);if(error)alert(error.message);else{alert("Produs salvat");await loadProducts()}};row.append(name,price,cat,available,save);el.append(row)}}
+async function loadDays(){const data=await schedule(),el=$("daysList");el.replaceChildren();for(const d of data){const label=document.createElement("label");label.className="day";const cb=document.createElement("input");cb.type="checkbox";cb.dataset.weekday=d.weekday;cb.checked=d.enabled;label.append(cb,document.createTextNode(days[d.weekday-1]));el.append(label)}}
+$("saveDays").onclick=async()=>{const b=$("saveDays");b.disabled=true;for(const x of $("daysList").querySelectorAll("input")){const {error}=await supabaseClient.from("shop_schedule").update({enabled:x.checked}).eq("weekday",Number(x.dataset.weekday));if(error){msg("daysMessage",error.message);b.disabled=false;return}}msg("daysMessage","Program salvat!");b.disabled=false;await schedule()};
+$("search").oninput=renderProducts;loadProducts();schedule();session();setInterval(()=>{if(user&&mode==="shop")tracking();if(user&&mode==="history")history()},60000);
+</script></body></html>
