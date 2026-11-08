@@ -103,4 +103,34 @@ function renderAdminProducts(){if(!admin)return;const el=$("adminProducts");el.r
 async function loadDays(){const data=await schedule(),el=$("daysList");el.replaceChildren();for(const d of data){const label=document.createElement("label");label.className="day";const cb=document.createElement("input");cb.type="checkbox";cb.dataset.weekday=d.weekday;cb.checked=d.enabled;label.append(cb,document.createTextNode(days[d.weekday-1]));el.append(label)}}
 $("saveDays").onclick=async()=>{const b=$("saveDays");b.disabled=true;for(const x of $("daysList").querySelectorAll("input")){const {error}=await supabaseClient.from("shop_schedule").update({enabled:x.checked}).eq("weekday",Number(x.dataset.weekday));if(error){msg("daysMessage",error.message);b.disabled=false;return}}msg("daysMessage","Program salvat!");b.disabled=false;await schedule()};
 $("search").oninput=renderProducts;loadProducts();schedule();session();setInterval(()=>{if(user&&mode==="shop")tracking();if(user&&mode==="history")history()},60000);
+
+/* Indicator discret pentru cererile de abonament în așteptare (director). */
+const subscriptionBadgeStyle=document.createElement("style");
+subscriptionBadgeStyle.textContent=".shop-subscription-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;margin-left:9px;border-radius:999px;background:#d62828;color:white;font-size:12px;font-weight:800;line-height:1;vertical-align:middle;box-sizing:border-box}.shop-subscription-count[hidden]{display:none!important}";
+document.head.append(subscriptionBadgeStyle);
+let pendingSubscriptionCount=0;
+function renderSubscriptionCount(){
+ const buttons=document.querySelectorAll("button");
+ for(const button of buttons){
+  if(!/abonamente\s*[·•-]?\s*aprobări/i.test(button.textContent.replace(/\s*\d+\s*$/,"")))continue;
+  let badge=button.querySelector(".shop-subscription-count");
+  if(!badge){badge=document.createElement("span");badge.className="shop-subscription-count";badge.setAttribute("aria-label","Cereri de abonament în așteptare");button.appendChild(badge)}
+  badge.hidden=pendingSubscriptionCount===0;
+  badge.textContent=String(pendingSubscriptionCount);
+ }
+}
+async function refreshSubscriptionCount(){
+ if(!user||!admin){pendingSubscriptionCount=0;renderSubscriptionCount();return}
+ try{
+  const {count,error}=await supabaseClient.from("shop_subscriptions").select("id",{count:"exact",head:true}).eq("status","pending");
+  if(error)throw error;
+  pendingSubscriptionCount=count||0;
+  renderSubscriptionCount();
+ }catch(e){console.warn("Nu s-a putut actualiza numărul cererilor de abonament",e)}
+}
+const subscriptionBadgeObserver=new MutationObserver(()=>{if(user&&admin)renderSubscriptionCount()});
+subscriptionBadgeObserver.observe(document.body,{childList:true,subtree:true});
+setInterval(refreshSubscriptionCount,15000);
+document.addEventListener("click",event=>{if(event.target.closest("button")?.textContent.match(/abonamente|aprob|resping/i))setTimeout(refreshSubscriptionCount,1200)},true);
+setTimeout(refreshSubscriptionCount,1000);
 </script></body></html>
