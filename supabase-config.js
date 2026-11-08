@@ -61,68 +61,61 @@ window.addEventListener('load',()=>{
  install();const observer=new MutationObserver(install);observer.observe(document.body,{childList:true,subtree:true});
 });
 
-/* ShopInternat: informare vizibilă când abonamentul blochează o comandă.
-   Nu modifică RPC-ul, verificarea server-side sau funcțiile de abonament. */
+/* Mesajele de la finalizarea comenzii sunt afișate și într-un dialog accesibil.
+   Păstrăm mesajul original și logica existentă de checkout. */
 window.addEventListener('load', () => {
-  const message = document.getElementById('checkoutMessage');
-  if (!message) return;
-  let lastShown = '';
-  const isSubscriptionError = text =>
-    /abonament/i.test(text) &&
-    /(nu este activ|inactiv|achit|aproba|expirat|subscription)/i.test(text);
-  function showSubscriptionNotice(text) {
-    if (document.getElementById('inactive-subscription-modal')) return;
+  const source = document.getElementById('checkoutMessage');
+  if (!source) return;
+  let lastMessage = '';
+  const subscriptionError = text => /abonament/i.test(text) && /(nu este activ|inactiv|achit|aproba|expirat|subscription)/i.test(text);
+  function showCheckoutNotice(text) {
+    const existing = document.getElementById('checkout-notice-dialog');
+    if (existing) existing.remove();
     const overlay = document.createElement('div');
-    overlay.id = 'inactive-subscription-modal';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:1500;background:#0009;display:flex;align-items:center;justify-content:center;padding:16px';
+    overlay.id = 'checkout-notice-dialog';
+    overlay.className = 'shop-extra-overlay';
+    overlay.style.zIndex = '1600';
     const panel = document.createElement('section');
-    panel.setAttribute('role','alertdialog');
-    panel.setAttribute('aria-modal','true');
-    panel.setAttribute('aria-labelledby','inactive-subscription-title');
-    panel.style.cssText = 'background:#fff;color:#173b2a;border-radius:18px;width:min(440px,100%);padding:24px;box-shadow:0 12px 40px #0003';
+    panel.className = 'shop-extra-panel';
+    panel.setAttribute('role', 'alertdialog');
+    panel.setAttribute('aria-modal', 'true');
+    panel.setAttribute('aria-labelledby', 'checkout-notice-title');
     const title = document.createElement('h2');
-    title.id = 'inactive-subscription-title';
-    title.textContent = '💳 Abonament inactiv';
+    title.id = 'checkout-notice-title';
+    title.textContent = subscriptionError(text) ? 'Abonament necesar' : /închis|20:30|ora 20/i.test(text) ? 'Programul comenzilor' : /trimis|înregistrat|așteaptă|asteapta/i.test(text) ? 'Cerere înregistrată' : 'Informație despre comandă';
     const description = document.createElement('p');
-    description.textContent = 'Pentru a trimite o comandă, ai nevoie de un abonament activ. Poți alege 30 MDL pentru ziua activării sau 100 MDL pentru 7 zile. Produsele se achită separat.';
-    const details = document.createElement('p');
-    details.textContent = text;
-    details.style.cssText = 'font-size:13px;color:#64766b';
+    description.textContent = text;
     const actions = document.createElement('div');
-    actions.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap';
-    const go = document.createElement('button');
-    go.type = 'button';
-    go.textContent = '💳 Abonamentul meu';
+    actions.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;margin-top:20px';
     const close = document.createElement('button');
     close.type = 'button';
-    close.textContent = 'Închide';
-    close.style.cssText = 'background:#e9efec;color:#173b2a';
-    const dismiss = () => { overlay.remove(); lastShown = ''; };
-    close.onclick = dismiss;
-    go.onclick = () => {
-      dismiss();
-      if (typeof mySubscription === 'function') mySubscription();
-      else {
-        const link = document.querySelector('[data-subscription-menu]');
-        if (link) link.click();
-        else alert('Deschide meniul ☰ și alege „Abonamentul meu”.');
-      }
-    };
-    overlay.onclick = e => { if (e.target === overlay) dismiss(); };
-    actions.append(go,close);
-    panel.append(title,description,details,actions);
+    close.textContent = 'Am înțeles';
+    const dismiss = () => { overlay.remove(); close.removeEventListener('click', dismiss); };
+    close.addEventListener('click', dismiss);
+    actions.append(close);
+    if (subscriptionError(text)) {
+      const subscription = document.createElement('button');
+      subscription.type = 'button';
+      subscription.textContent = 'Vezi abonamentul';
+      subscription.onclick = () => {
+        dismiss();
+        if (typeof mySubscription === 'function') mySubscription();
+        else document.querySelector('[data-subscription-menu]')?.click();
+      };
+      actions.prepend(subscription);
+    }
+    panel.append(title,description,actions);
     overlay.append(panel);
+    overlay.addEventListener('click', event => { if (event.target === overlay) dismiss(); });
+    overlay.addEventListener('keydown', event => { if (event.key === 'Escape') dismiss(); });
     document.body.append(overlay);
-    go.focus();
+    close.focus();
   }
-  const check = () => {
-    const text = (message.textContent || '').trim();
-    if (!isSubscriptionError(text)) { lastShown = ''; return; }
-    if (text === lastShown) return;
-    lastShown = text;
-    message.textContent = '';
-    showSubscriptionNotice(text);
-  };
-  new MutationObserver(check).observe(message,{childList:true,characterData:true,subtree:true});
-  check();
+  new MutationObserver(() => {
+    const text = (source.textContent || '').trim();
+    if (!text) { lastMessage = ''; return; }
+    if (text === lastMessage) return;
+    lastMessage = text;
+    showCheckoutNotice(text);
+  }).observe(source, {childList:true,characterData:true,subtree:true});
 });
