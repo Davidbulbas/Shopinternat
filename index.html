@@ -255,7 +255,7 @@ function reorderShopItems(order){
   const qty=Number(item.quantity);if(!Number.isFinite(qty)||qty<=0)continue;
   cart[p.id]=Math.round(((cart[p.id]||0)+qty)*1000)/1000;count++;
  }
- if(count){renderCart();document.getElementById("cartItems")?.scrollIntoView({behavior:"smooth",block:"center"});alert(count+" produse adăugate în coș la prețurile actuale."+(missing?" "+missing+" produse nu mai sunt disponibile.":""))}
+ if(count){renderCart();navigate("shop");setTimeout(()=>document.getElementById("cartItems")?.scrollIntoView({behavior:"smooth",block:"center"}),0);alert(count+" produse adăugate în coș la prețurile actuale."+(missing?" "+missing+" produse nu mai sunt disponibile.":""))}
  else alert("Produsele din această comandă nu mai sunt disponibile.");
 }
 function renderCart(){const el=$("cartItems");el.replaceChildren();let total=0;for(const [id,qty] of Object.entries(cart)){if(qty<=0)continue;const p=products.find(x=>String(x.id)===id);if(!p)continue;total+=p.price*qty;const row=document.createElement("div");row.className="cart-row";const label=document.createElement("span");label.textContent=p.name+" × "+(fruit(p)?Math.round(qty*1000)+" g":qty);const ctr=document.createElement("span");for(const [sign,delta] of [["−",-1],["+",1]]){const b=document.createElement("button");b.textContent=sign;b.onclick=()=>{cart[id]=Math.max(0,Math.round((cart[id]+delta*(fruit(p)?0.1:1))*1000)/1000);renderCart()};ctr.append(b)}const amount=document.createElement("span");amount.textContent=cash(p.price*qty);row.append(label,amount,ctr);el.append(row)}if(!el.childElementCount)el.textContent="Coșul este gol.";msg("total","Total: "+cash(total));renderCartSuggestions()}
