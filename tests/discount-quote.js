@@ -34,5 +34,15 @@
   if(!Number.isSafeInteger(completedPaidOrders)||completedPaidOrders<0||!Number.isSafeInteger(alreadyGrantedCredits)||alreadyGrantedCredits<0)throw new TypeError('Date invalide');
   return Math.max(0,Math.floor(completedPaidOrders/5)-alreadyGrantedCredits);
  }
- return Object.freeze({quote,welcomeEligible,loyaltyCredits});
+ // A referral only qualifies after the invited user's first approved and delivered order.
+ // This is a test-only eligibility rule; the database must enforce ownership and idempotency.
+ function referralEligible({inviterId,inviteeId,firstOrder,delivered,paymentApproved,alreadyGranted}={}){
+  return typeof inviterId==='string'&&inviterId.length>0&&typeof inviteeId==='string'&&inviteeId.length>0
+   &&inviterId!==inviteeId&&firstOrder===true&&delivered===true
+   &&paymentApproved===true&&alreadyGranted!==true;
+ }
+ function validReferralCode(code){
+  return typeof code==='string'&&/^[A-Z0-9]{8,16}$/.test(code);
+ }
+ return Object.freeze({quote,welcomeEligible,loyaltyCredits,referralEligible,validReferralCode});
 });
