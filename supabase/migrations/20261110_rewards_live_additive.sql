@@ -18,7 +18,7 @@ begin
  if sub>=50 and not exists(select 1 from public.orders where user_id=u) then
   opts:=opts||jsonb_build_array(jsonb_build_object('id','welcome','kind','welcome','amount',5,'label','Bun venit — 5 MDL'));
  end if;
- for c in select * from shop_rewards_preview.reward_credits where user_id=u and status='available' and kind<>'welcome' order by amount desc,id loop
+ for c in select * from shop_rewards_preview.reward_credits r where r.user_id=u and r.status='available' and r.kind<>'welcome' order by r.amount desc,r.id loop
   opts:=opts||jsonb_build_array(jsonb_build_object('id',c.id::text,'kind',c.kind,'amount',least(c.amount,sub),'label',case c.kind when 'loyalty' then 'Client fidel — 10 MDL' else 'Invită un prieten — 5 MDL' end));
  end loop;
  if chosen='auto' then
