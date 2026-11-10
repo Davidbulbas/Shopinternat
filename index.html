@@ -184,7 +184,8 @@ document.getElementById("budgetToggle")?.addEventListener("click",()=>{const btn
 function renderBudgetCombos(){
  const slider=$("budgetSlider"),root=$("budgetCombos");if(!slider||!root)return;
  const budget=Number(slider.value);$("budgetAmount").textContent=budget+" MDL";root.replaceChildren();
- const available=new Map(products.filter(p=>p.is_available&&!fruit(p)&&Number(p.price)>0).map(p=>[Number(p.id),p]));
+ const available=new Map(products.filter(p=>p.is_available&&Number(p.price)>0).map(p=>[Number(p.id),p]));
+ const comboQty=p=>fruit(p)?0.5:1,comboPrice=p=>Number(p.price)*comboQty(p);
  const themes=[
   {title:"🥣 Mic dejun complet",core:[[21,19,22,20,18],[51,52,53]],extras:[[47,48,49,50],[56,58,57],[23,26]]},
   {title:"☕ Ceai și biscuiți",core:[[86],[56,58,57,59]],extras:[[12,13,14],[47,48,49,50],[23,26]]},
@@ -195,7 +196,9 @@ function renderBudgetCombos(){
   {title:"🍜 Pauză cu tăiței",core:[[15,16,17],[23,24,26,28,29]],extras:[[67,69,72,73],[56,58,57],[47,48,49,50]]},
   {title:"🥤 Pauză dulce",core:[[56,57,58,59],[28,29,30,38,39,40,41]],extras:[[8,9,6,7],[47,48,49,50],[23,26]]},
   {title:"🍫 Cereale și gustări",core:[[19,20,21,22],[51,52,53]],extras:[[56,57,58],[47,48,49,50],[86]]},
-  {title:"🥪 Gustare sărată",core:[[9,6,7,8],[23,24,26,28,29]],extras:[[62,63,65,67,69],[46,47,48,49],[56,58]]}
+  {title:"🥪 Gustare sărată",core:[[9,6,7,8],[23,24,26,28,29]],extras:[[62,63,65,67,69],[46,47,48,49],[56,58]]},
+  {title:"🌭 Mezeluri și sosuri",core:[[93,94],[89,90,91,92]],extras:[[12,13,14],[89,90,91,92],[28,29,30,35]]},
+  {title:"🍅 Sosuri și gustări",core:[[89,90,91,92],[12,13,14,15,16,17]],extras:[[93,94],[28,29,30],[56,58]]}
  ];
  const options=[],seen=new Set();
  for(const theme of themes){
@@ -203,18 +206,18 @@ function renderBudgetCombos(){
   const second=theme.core[1].map(id=>available.get(id)).filter(Boolean);
   for(let variant=0;variant<4;variant++){
    const candidates=[];
-   for(const p of first)for(const q of second)if(p.id!==q.id&&Number(p.price)+Number(q.price)<=budget)candidates.push([p,q]);
+   for(const p of first)for(const q of second)if(p.id!==q.id&&comboPrice(p)+comboPrice(q)<=budget)candidates.push([p,q]);
    if(!candidates.length)continue;
-   candidates.sort((x,y)=>Number(y[0].price)+Number(y[1].price)-Number(x[0].price)-Number(x[1].price));
+   candidates.sort((x,y)=>comboPrice(y[0])+comboPrice(y[1])-comboPrice(x[0])-comboPrice(x[1]));
    const core=candidates[(variant*7)%candidates.length],selected=core.slice();
-   let total=selected.reduce((sum,p)=>sum+Number(p.price),0);
+   let total=selected.reduce((sum,p)=>sum+comboPrice(p),0);
    const extraGroups=theme.extras.map(ids=>ids.map(id=>available.get(id)).filter(Boolean));
    const ordered=extraGroups.flatMap((group,i)=>group.map((p,j)=>({p,rank:(j*3+i*5+variant*7)%17}))).sort((x,y)=>x.rank-y.rank);
    const maxItems=Math.min(9,2+Math.floor(budget/45));
    for(const entry of ordered){
     const p=entry.p;if(selected.length>=maxItems)break;
-    if(selected.some(x=>x.id===p.id)||total+Number(p.price)>budget)continue;
-    selected.push(p);total+=Number(p.price);
+    if(selected.some(x=>x.id===p.id)||total+comboPrice(p)>budget)continue;
+    selected.push(p);total+=comboPrice(p);
    }
    const key=selected.map(p=>p.id).sort((x,y)=>x-y).join(",");
    if(seen.has(key))continue;seen.add(key);
@@ -231,10 +234,10 @@ function renderBudgetCombos(){
   const list=document.createElement("div");list.className="budget-combo-items";
   for(const p of combo.selected){const item=document.createElement("div"),photo=shopProductImageUrl(p);
    if(photo){const im=document.createElement("img");im.src=photo;im.alt="";im.loading="lazy";im.onerror=()=>im.remove();item.append(im)}
-   const name=document.createElement("span");name.textContent=p.name+" · "+cash(p.price);item.append(name);list.append(item)
+   const name=document.createElement("span");name.textContent=p.name+" · "+(fruit(p)?"500 g":"1 buc")+" · "+cash(comboPrice(p));item.append(name);list.append(item)
   }
   card.append(list);const btn=document.createElement("button");btn.textContent="Adaugă combinația în coș";
-  btn.onclick=()=>{for(const p of combo.selected)cart[p.id]=Math.round(((cart[p.id]||0)+1)*1000)/1000;renderCart();btn.textContent="✓ Adăugată în coș"};
+  btn.onclick=()=>{for(const p of combo.selected)cart[p.id]=Math.round(((cart[p.id]||0)+comboQty(p))*1000)/1000;renderCart();btn.textContent="✓ Adăugată în coș"};
   card.append(btn);root.append(card)
  }
 }
