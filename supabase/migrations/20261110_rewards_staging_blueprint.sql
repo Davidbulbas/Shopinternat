@@ -45,6 +45,47 @@ create table if not exists shop_rewards_preview.order_payments (
  check(discount <= subtotal),
  check((reward_id is null and discount=0 and discount_kind is null) or (reward_id is not null and discount>0 and discount_kind is not null))
 );
+-- Preview-only quote calculation. No mutation, no access from public API.
+-- p_choice: 'auto' (largest), 'none' (no discount), or numeric reward id.
+create or replace function shop_rewards_preview.quote_discount(
+ p_user uuid, p_subtotal numeric, p_choice text default 'auto'
+) returns table(reward_id bigint, discount_kind text, discount_amount numeric, amount_due numeric)
+language plpgsql stable security invoker set search_path = ''
+as $fn$
+declare v_reward shop_rewards_preview.reward_credits%rowtype;
+begin
+ if p_user is null or p_subtotal is null or p_subtotal < 0 then
+  raise exception 'Invalid quote input';
+ end if;
+ if p_choice is null or p_choice = 'auto' then
+  select * into v_reward from shop_rewards_preview.reward_credits r
+  where r.user_id=p_user and r.status='available'
+  order by least(r.amount,p_subtotal) desc, r.amount desc, r.created_at, r.id limit 1;
+ elsif p_choice='none' then
+  return query select null::bigint,null::text,0::numeric,round(p_subtotal,2);
+  return;
+ elsif p_choice ~ '^[0-9]{1,18}
+revoke all on schema shop_rewards_preview from public,anon,authenticated;
+revoke all on all tables in schema shop_rewards_preview from public,anon,authenticated;
+alter table shop_rewards_preview.referral_codes enable row level security;
+alter table shop_rewards_preview.referrals enable row level security;
+alter table shop_rewards_preview.reward_credits enable row level security;
+alter table shop_rewards_preview.order_payments enable row level security;
+commit;
+ then
+  select * into v_reward from shop_rewards_preview.reward_credits r
+  where r.user_id=p_user and r.status='available' and r.id=p_choice::bigint;
+  if not found then raise exception 'Reward unavailable'; end if;
+ else
+  raise exception 'Invalid reward choice';
+ end if;
+ if not found or v_reward.id is null or p_subtotal=0 then
+  return query select null::bigint,null::text,0::numeric,round(p_subtotal,2);
+ else
+  return query select v_reward.id,v_reward.kind,least(v_reward.amount,round(p_subtotal,2)),greatest(0,round(p_subtotal,2)-least(v_reward.amount,round(p_subtotal,2)));
+ end if;
+end $fn$;
+
 -- No grants to anon/authenticated: staging objects are private, not callable from public API.
 revoke all on schema shop_rewards_preview from public,anon,authenticated;
 revoke all on all tables in schema shop_rewards_preview from public,anon,authenticated;
