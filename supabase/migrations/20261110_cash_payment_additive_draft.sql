@@ -1,8 +1,22 @@
--- DRAFT FOR REVIEW: NOT APPLIED TO PRODUCTION.
+-- Additive migration: review and apply once.
 -- Additive migration; existing place_shop_order and review_shop_order_payment remain unchanged.
 begin;
 alter table public.orders add column if not exists payment_method text not null default 'mia';
 alter table public.orders add constraint shop_orders_payment_method_check check (payment_method in ('mia','cash'));
+
+-- Prevent direct payment-method changes from the browser, even if a broad UPDATE grant exists.
+create or replace function public.guard_shop_payment_method()
+returns trigger language plpgsql set search_path = ''
+as $guard_method$
+begin
+ if new.payment_method is distinct from old.payment_method
+ and pg_catalog.current_setting('shop.set_payment_method',true) is distinct from 'yes'
+ then raise exception 'Metoda de plată poate fi stabilită doar la plasarea comenzii'; end if;
+ return new;
+end;
+$guard_method$;
+create trigger guard_shop_payment_method_trigger before update on public.orders
+for each row execute function public.guard_shop_payment_method();
 
 -- The original RPC performs all subscription, cutoff, stock, price and per-day checks.
 -- This wrapper uses it unchanged; both calls run atomically in one transaction.
@@ -16,6 +30,7 @@ begin
   raise exception 'Metodă de plată invalidă';
  end if;
  v_order := public.place_shop_order(p_items);
+ perform pg_catalog.set_config('shop.set_payment_method','yes',true);
  update public.orders set payment_method = p_method
  where id = v_order and user_id = v_uid and payment_status = 'pending';
  if not found then raise exception 'Comanda nu a putut fi actualizată'; end if;
