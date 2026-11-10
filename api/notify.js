@@ -17,14 +17,13 @@ try{
  if(!order)return res.status(403).json({error:"Order not found"});
  const p=await fetch(base+"/rest/v1/profiles?id=eq."+encodeURIComponent(user.id)+"&select=phone,room_number",{headers});
  const prof=p.ok?(await p.json())[0]||{}:{};
- const claim=await fetch(base+"/rest/v1/rpc/claim_shop_order_email",{method:"POST",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify({p_order_id:id})});
- if(!claim.ok)return res.status(502).json({error:"Could not register notification"});
- if(await claim.json()!==true)return res.status(200).json({ok:true,already_sent:true});
  const items=(order.order_items||[]).map(i=>i.product_name+" × "+i.quantity+" ("+Number(i.unit_price).toFixed(2)+" MDL/buc)").join("\n");
  const method=order.payment_method==="cash"?"Cash / numerar":"MIA / transfer";
  const body="Cerere nouă de comandă ("+method+" de verificat) #"+id+"\nCamera: "+(prof.room_number||"Nespecificată")+"\nTelefon: "+(prof.phone||"Nespecificat")+"\nClient: "+(user.email||"")+"\n\nProduse:\n"+items+"\n\nTotal de verificat "+(order.payment_method==="cash"?"în numerar":"în maibank")+": "+Number(order.total).toFixed(2)+" MDL";
- const email=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:"Bearer "+secret,"Content-Type":"application/json"},body:JSON.stringify({from:"ShopInternat <onboarding@resend.dev>",to:["bulbasgmdavid@gmail.com"],subject:"🛒 Comandă nouă ShopInternat #"+id,text:body})});
+ const email=await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:"Bearer "+secret,"Content-Type":"application/json","Idempotency-Key":"shopinternat-order-"+id},body:JSON.stringify({from:"ShopInternat <onboarding@resend.dev>",to:["bulbasgmdavid@gmail.com"],subject:"🛒 Comandă nouă ShopInternat #"+id,text:body})});
  if(!email.ok){const error=await email.text();console.error("Resend rejected",email.status,error.slice(0,300));return res.status(502).json({error:"Email service rejected message"})}
+ const claim=await fetch(base+"/rest/v1/rpc/claim_shop_order_email",{method:"POST",headers:{...headers,"Content-Type":"application/json"},body:JSON.stringify({p_order_id:id})});
+ if(!claim.ok){console.error("Notification sent but claim failed",claim.status);return res.status(200).json({ok:true,tracking_warning:true});}
  return res.status(200).json({ok:true});
 }catch(e){console.error("Notification error",e);return res.status(500).json({error:"Notification failed"})}
 }
