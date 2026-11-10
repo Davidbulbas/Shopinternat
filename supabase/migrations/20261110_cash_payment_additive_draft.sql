@@ -28,7 +28,7 @@ grant execute on function public.place_shop_order_with_method(jsonb,text) to aut
 -- It uses the same locked pending-order guard and payment-review trigger convention.
 create or replace function public.review_shop_cash_payment(p_order_id bigint, p_approve boolean)
 returns void language plpgsql security definer set search_path = ''
-as $
+as $cash_review$
 declare v_uid uuid := auth.uid(); v_order public.orders%rowtype;
 begin
  if v_uid is null or not exists (
@@ -45,7 +45,7 @@ begin
   status=case when p_approve then 'new' else 'cancelled' end
  where id=p_order_id;
 end;
-$;
+$cash_review$;
 revoke all on function public.review_shop_cash_payment(bigint,boolean) from public, anon;
 grant execute on function public.review_shop_cash_payment(bigint,boolean) to authenticated;
 commit;
