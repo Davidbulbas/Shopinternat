@@ -77,16 +77,16 @@ revoke all on function public.shop_rewards_my_code() from public,anon;
 grant execute on function public.shop_rewards_my_code() to authenticated;
 
 create or replace function public.shop_rewards_accept_referral(p_code text) returns boolean language plpgsql security definer set search_path='' as $ref$
-declare u uuid:=auth.uid(); inviter uuid; code text:=upper(trim(coalesce(p_code,'')));
+declare u uuid:=auth.uid(); inviter uuid; v_code text:=upper(trim(coalesce(p_code,'')));
 begin
  if u is null then raise exception 'Autentificare obligatorie'; end if;
  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(u::text));
- if code !~ '^[A-Z0-9]{8,16}$' then raise exception 'Cod invalid'; end if;
+ if v_code !~ '^[A-Z0-9]{8,16}$' then raise exception 'Cod invalid'; end if;
  if exists(select 1 from public.orders where user_id=u) then raise exception 'Codul se introduce înainte de prima comandă'; end if;
- select user_id into inviter from shop_rewards_preview.referral_codes where shop_rewards_preview.referral_codes.code=code;
+ select user_id into inviter from shop_rewards_preview.referral_codes where shop_rewards_preview.referral_codes.code=v_code;
  if inviter is null or inviter=u then raise exception 'Cod invalid sau propriu'; end if;
  if exists(select 1 from shop_rewards_preview.referrals where invited_user_id=u) then raise exception 'Ai folosit deja un cod'; end if;
- insert into shop_rewards_preview.referrals(invited_user_id,inviter_user_id,code) values(u,inviter,code);
+ insert into shop_rewards_preview.referrals(invited_user_id,inviter_user_id,code) values(u,inviter,v_code);
  return true;
 end $ref$;
 revoke all on function public.shop_rewards_accept_referral(text) from public,anon;
