@@ -1,0 +1,17 @@
+begin;
+revoke execute on function public.guard_shop_order_payment() from public,anon,authenticated;
+revoke execute on function public.prevent_reopening_cancelled_shop_order() from public,anon,authenticated;
+revoke execute on function public.rls_auto_enable() from public,anon,authenticated;
+revoke execute on function public.is_shop_admin() from public,anon;
+grant execute on function public.is_shop_admin() to authenticated;
+revoke execute on function public.place_shop_order(jsonb) from public,anon;
+grant execute on function public.place_shop_order(jsonb) to authenticated;
+revoke execute on function public.request_shop_subscription(numeric) from public,anon;
+grant execute on function public.request_shop_subscription(numeric) to authenticated;
+revoke execute on function public.review_shop_order_payment(bigint,boolean) from public,anon;
+grant execute on function public.review_shop_order_payment(bigint,boolean) to authenticated;
+revoke execute on function public.review_shop_subscription(bigint,boolean) from public,anon;
+grant execute on function public.review_shop_subscription(bigint,boolean) to authenticated;
+revoke execute on function public.shop_admin_order_emails() from public,anon;
+grant execute on function public.shop_admin_order_emails() to authenticated;
+commit;
