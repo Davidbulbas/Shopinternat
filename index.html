@@ -236,7 +236,7 @@ function renderBudgetCombos(){
  const slider=$("budgetSlider"),root=$("budgetCombos");if(!slider||!root)return;
  const budget=Number(slider.value);$("budgetAmount").textContent=budget+" MDL";root.replaceChildren();
  const available=new Map(products.filter(p=>visibleShopProduct(p)&&Number(p.price)>0).map(p=>[Number(p.id),p]));
- const comboQty=p=>fruit(p)?0.5:1,comboPrice=p=>Number(p.price)*comboQty(p);
+ const comboQty=p=>fruit(p)?0.5:(p.unit==="kg"?0.2:1),comboPrice=p=>Number(p.price)*comboQty(p);
  // Each idea has a deliberate food pairing: one item from each group, never two drinks.
  const themes=[
   {title:"🥛 Biscuiți și lapte",groups:[[56,57,58,59],[51,52,53]]},
@@ -302,7 +302,7 @@ function renderBudgetCombos(){
   const list=document.createElement("div");list.className="budget-combo-items";
   for(const p of combo.selected){const item=document.createElement("div"),photo=shopProductImageUrl(p);
    if(photo){const im=document.createElement("img");im.src=photo;im.alt="";im.loading="lazy";im.onerror=()=>im.remove();item.append(im)}
-   const name=document.createElement("span");name.textContent=p.name+" · "+(fruit(p)?"500 g":"1 buc")+" · "+cash(comboPrice(p));item.append(name);list.append(item)
+   const name=document.createElement("span");name.textContent=p.name+" · "+(fruit(p)?"500 g":p.unit==="kg"?"200 g":"1 buc")+" · "+cash(comboPrice(p));item.append(name);list.append(item)
   }
   card.append(list);const btn=document.createElement("button");btn.textContent="Adaugă combinația în coș";
   btn.onclick=()=>{for(const p of combo.selected)cart[p.id]=Math.round(((cart[p.id]||0)+comboQty(p))*1000)/1000;renderCart();btn.textContent="✓ Adăugată în coș"};
