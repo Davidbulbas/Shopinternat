@@ -82,7 +82,7 @@ window.addEventListener('load', () => {
     panel.setAttribute('aria-labelledby', 'checkout-notice-title');
     const title = document.createElement('h2');
     title.id = 'checkout-notice-title';
-    title.textContent = subscriptionError(text) ? 'Abonament necesar' : /închis|20:40|ora 20/i.test(text) ? 'Programul comenzilor' : /trimis|înregistrat|așteaptă|asteapta/i.test(text) ? 'Cerere înregistrată' : 'Informație despre comandă';
+    title.textContent = subscriptionError(text) ? 'Abonament necesar' : /nu a fost trimisă|invalidă|invalid|eroare|indisponibil|respins/i.test(text) ? 'Comanda nu a fost trimisă' : /închis|20:40|ora 20/i.test(text) ? 'Programul comenzilor' : /Cererea #|a fost înregistrată/i.test(text) ? 'Cerere înregistrată' : 'Informație despre comandă';
     const description = document.createElement('p');
     description.textContent = subscriptionError(text) ? 'Nu poți trimite comanda deoarece nu ai un abonament activ. Pentru a putea comanda, intră în secțiunea „Abonamentul meu” și activează un abonament.' : text;
     const actions = document.createElement('div');
