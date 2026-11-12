@@ -111,6 +111,8 @@ window.addEventListener('load', () => {
     document.body.append(overlay);
     close.focus();
   }
+  // A new checkout attempt must show the notice again, even when the error text is identical.
+  document.getElementById('checkoutBtn')?.addEventListener('click', () => { lastMessage = ''; }, true);
   new MutationObserver(() => {
     const text = (source.textContent || '').trim();
     if (!text) { lastMessage = ''; return; }
