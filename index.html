@@ -209,7 +209,7 @@ $("headerSubscriptionBtn").onclick=async()=>{
  prev.onclick=()=>{if(month===0){month=11;year--}else month--;render()};next.onclick=()=>{if(month===11){month=0;year++}else month++;render()};render();
  sendFlex.onclick=async()=>{if(chosen.size!==3)return;if(!confirm("Ai achitat 50 MDL prin MIA pentru datele alese? Directorul va verifica plata."))return;sendFlex.disabled=true;const {error:requestError}=await supabaseClient.rpc("request_shop_flex_dates",{p_dates:[...chosen].sort()});if(requestError){alert("Cererea nu a fost trimisă: "+requestError.message);sendFlex.disabled=false;return}const notified=await notifySubscriptionByEmail();alert(notified?"✅ Cerere Flex trimisă! Așteaptă aprobarea directorului.":"✅ Cererea Flex a fost salvată, dar notificarea pe email nu a putut fi trimisă. Directorul o poate vedea în panou.");await refresh()}
  flexCard.append(flex);
- sendFlex.onclick=async()=>{if(chosen.size!==3)return;if(!confirm("Ai achitat 50 MDL prin MIA pentru zilele alese? Directorul va verifica plata."))return;sendFlex.disabled=true;const {error:requestError}=await supabaseClient.rpc("request_shop_flex_subscription",{p_days:[...chosen].sort((a,b)=>a-b)});if(requestError){alert("Cererea nu a fost trimisă: "+requestError.message);sendFlex.disabled=false;return}const notified=await notifySubscriptionByEmail();alert(notified?"✅ Cerere Flex trimisă! Așteaptă aprobarea directorului.":"✅ Cererea Flex a fost salvată, dar notificarea pe email nu a putut fi trimisă. Directorul o poate vedea în panou.");await refresh()}
+
  }
  await refresh()
 };
